@@ -10,10 +10,7 @@ import java.awt.Image;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.io.IOException;
-import java.lang.reflect.*;
 import java.net.URL;
-import java.util.HashMap;
-import java.util.Map;
 
 import javax.imageio.ImageIO;
 
@@ -36,17 +33,30 @@ import org.tribot.script.interfaces.MouseActions;
 import org.tribot.script.interfaces.Painting;
 
 enum State {
-	BANKING, 
-	GO_TO_DRUIDS,
-	PROCESS_DRUIDS, 
-	GO_TO_BANK,
+	BANKING {
+		@Override
+		void run() { LANChaosKiller.doBanking(); }
+	},
+	GO_TO_DRUIDS {
+		@Override
+		void run() { LANChaosKiller.goToDruids(); }
+	},
+	PROCESS_DRUIDS {
+		@Override
+		void run() { LANChaosKiller.doProcessDruids(); }
+	},
+	GO_TO_BANK {
+		@Override
+		void run() { LANChaosKiller.goToBank(); }
+	};
+	
+	abstract void run();
 }
 
 @ScriptManifest(authors = { "Laniax" }, category = "Combat", name = "LAN's Chaos Killer", description = "Flawless Ardougne Chaos Druid Killer.")
 public class LANChaosKiller extends Script implements Painting, MouseActions {
 	// Global defines
 	private static boolean quitting = false;
-	private static Map<State, Method> stateMap = new HashMap<State, Method>();
 	private static String statusText = "Starting..";
 	private static final RSPlayer player = Player.getRSPlayer();
 
@@ -86,22 +96,9 @@ public class LANChaosKiller extends Script implements Painting, MouseActions {
 
 	@Override
 	public void run() {
-		try {
-			for (State state : State.values()) {
-				stateMap.put(state,
-						LANChaosKiller.class.getMethod(state.name()));
-			}
-
-			while (!quitting) {
-				stateMap.get(getState()).invoke(null);
-				sleep(General.random(40, 80));
-			}
-		} catch (NoSuchMethodException | SecurityException
-				| IllegalAccessException | IllegalArgumentException
-				| InvocationTargetException e) {
-			// Stop messing with my method/enum names!
-			General.println(e);
-			// todo: logout
+		while (!quitting) {
+			getState().run();
+			sleep(General.random(40, 80));
 		}
 	}
 
@@ -125,10 +122,10 @@ public class LANChaosKiller extends Script implements Painting, MouseActions {
 		return State.GO_TO_DRUIDS;
 	}
 
-	public static void BANKING() {
+	public static void doBanking() {
 		if (Player.getPosition().distanceTo(bankTile) >= 3) {
 			// failsafe.
-			GO_TO_BANK();
+			goToBank();
 		}
 
 		statusText = "Banking..";
@@ -156,7 +153,7 @@ public class LANChaosKiller extends Script implements Painting, MouseActions {
 		Banking.close();
 	}
 
-	public static void PROCESS_DRUIDS() {
+	public static void doProcessDruids() {
 		if (foodCount > 0 && (player.getMaxHealth() / 3) >= player.getHealth() && Inventory.find(foodID).length > 0) {
 			// health is below 33,3%. we have food, we should eat.
 			statusText = "Eating..";
@@ -248,7 +245,7 @@ public class LANChaosKiller extends Script implements Painting, MouseActions {
 		}
 	}
 
-	public static void GO_TO_BANK() {
+	public static void goToBank() {
 		statusText = "Going to bank..";
 
 		if (Player.getPosition().distanceTo(druidTowerCenter) <= 2) {
@@ -261,8 +258,8 @@ public class LANChaosKiller extends Script implements Painting, MouseActions {
 				}
 			}
 		}
+
 		while (!Player.getPosition().equals(log_west)) {
-			General.println("Walking");
 			Walking.walkPath(Walking.invertPath(logToTower));
 			General.sleep(2000, 2500);
 		}
@@ -274,7 +271,7 @@ public class LANChaosKiller extends Script implements Painting, MouseActions {
 		if (log != null) {
 			while (!Player.getPosition().equals(log_east) && !Player.getPosition().equals(failed_log_walk[1])) {
 				log.click("Walk-across");
-				General.sleep(800, 1000);
+				General.sleep(4000, 5000);
 			}
 
 			statusText = "Going to bank..";
@@ -287,7 +284,7 @@ public class LANChaosKiller extends Script implements Painting, MouseActions {
 		}
 	}
 
-	public static void GO_TO_DRUIDS() {
+	public static void goToDruids() {
 		if (!(Player.getPosition().distanceTo(druidTowerCenter) <= 2)) {
 			statusText = "Going to the druids..";
 
