@@ -17,11 +17,13 @@ import javax.imageio.ImageIO;
 import org.tribot.api.General;
 import org.tribot.api2007.Banking;
 import org.tribot.api2007.Camera;
+import org.tribot.api2007.GroundItems;
 import org.tribot.api2007.Inventory;
 import org.tribot.api2007.NPCs;
 import org.tribot.api2007.PathFinding;
 import org.tribot.api2007.Player;
 import org.tribot.api2007.Walking;
+import org.tribot.api2007.types.RSGroundItem;
 import org.tribot.api2007.types.RSItem;
 import org.tribot.api2007.types.RSNPC;
 import org.tribot.api2007.types.RSObject;
@@ -61,6 +63,23 @@ public class LANChaosKiller extends Script implements Painting, MouseActions {
 	// Script defines
 	private static int foodID = 379; // todo: grab from settings
 	private static int foodCount = 1; // todo: grab from settings
+	private static final int LOOT_IDS[] = { 
+			563, // law rune
+			199, // guam leaf
+			201, // marrentill
+			203, // tarromin
+			205, // harralander
+			207, // ranarr
+			209, // irit
+			211, // avantoe
+			213, // kwuarm
+			215, // cadantine
+			217, // dwarf weed
+			219, // torsol
+			2485, // lantadyme
+			3051, // snapdragon
+
+	};// todo: grab from settings
 	
 	private static final int LOG_EAST_MODEL_POINT_COUNT = 54;
 	private static final int LOG_WEST_MODEL_POINT_COUNT = 114;
@@ -104,7 +123,7 @@ public class LANChaosKiller extends Script implements Painting, MouseActions {
 	}
 
 	private State getState() {
-		if (Inventory.isFull() || (foodCount > 0 && Inventory.find(foodID).length == 0 && (player.getMaxHealth() / 2) >= player.getHealth())) {
+		if (Inventory.isFull() || (foodCount > 0 && Inventory.find(foodID).length == 0 && (player.getMaxHealth() / 2) <= player.getHealth())) {
 			if (Player.getPosition().distanceTo(POS_BANK_CENTER) <= 2) {
 				// We are at the bank and in need of some banking action.
 				return State.BANKING;
@@ -170,7 +189,20 @@ public class LANChaosKiller extends Script implements Painting, MouseActions {
 		}
 
 		if (!player.isInCombat()) {
-			// todo: looting.
+
+			//Lets do some looting.
+			RSGroundItem lootItems[] = GroundItems.findNearest(LOOT_IDS);
+			if (lootItems.length > 0)
+			{
+				statusText = "Looting..";
+				for (RSGroundItem item : lootItems)
+				{
+					// Apparently just 'Take' would causes issues with multiple items on 1 tile.
+					if (item.click("Take "+ item.getDefinition().getName()))
+						General.sleep(1000,2000);
+				}
+			}
+			
 
 			statusText = "Killing druids..";
 			
@@ -219,8 +251,6 @@ public class LANChaosKiller extends Script implements Painting, MouseActions {
 									// We killed the current druid, and next druid isn't in combat yet.
 									if (druids[i+1].click("Attack"))
 										General.sleep(2000, 3000);
-
-									General.println("Hover druid attacked");
 									// No retrying here, if it fails the states will catch back up from the start
 								}
 							}
