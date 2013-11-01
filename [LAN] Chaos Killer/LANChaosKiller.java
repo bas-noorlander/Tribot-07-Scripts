@@ -15,6 +15,7 @@ import java.net.URL;
 import javax.imageio.ImageIO;
 
 import org.tribot.api.General;
+import org.tribot.api.Timing;
 import org.tribot.api2007.Banking;
 import org.tribot.api2007.Camera;
 import org.tribot.api2007.GroundItems;
@@ -22,6 +23,8 @@ import org.tribot.api2007.Inventory;
 import org.tribot.api2007.NPCs;
 import org.tribot.api2007.PathFinding;
 import org.tribot.api2007.Player;
+import org.tribot.api2007.Skills;
+import org.tribot.api2007.Skills.SKILLS;
 import org.tribot.api2007.Walking;
 import org.tribot.api2007.types.RSGroundItem;
 import org.tribot.api2007.types.RSItem;
@@ -65,6 +68,7 @@ public class LANChaosKiller extends Script implements Painting, MouseActions {
 	private static int foodCount = 1; // todo: grab from settings
 	private static final int LOOT_IDS[] = { 
 			563, // law rune
+			561, // nature rune
 			199, // guam leaf
 			201, // marrentill
 			203, // tarromin
@@ -78,6 +82,7 @@ public class LANChaosKiller extends Script implements Painting, MouseActions {
 			219, // torsol
 			2485, // lantadyme
 			3051, // snapdragon
+			9142, // mithril bolts
 
 	};// todo: grab from settings
 	
@@ -199,7 +204,10 @@ public class LANChaosKiller extends Script implements Painting, MouseActions {
 				{
 					// Apparently just 'Take' would causes issues with multiple items on 1 tile.
 					if (item.click("Take "+ item.getDefinition().getName()))
+					{
+						itemsLooted++;
 						General.sleep(1000,2000);
+					}
 				}
 			}
 			
@@ -375,17 +383,35 @@ public class LANChaosKiller extends Script implements Painting, MouseActions {
 	private final Image paint = getImage("https://dl.dropboxusercontent.com/u/21676524/RS/Paints/chaoskiller.png");
 	private final Image paintShow = getImage("https://dl.dropboxusercontent.com/u/21676524/RS/Paints/chaoskillertoggle.png");
 	private final Rectangle paintToggle = new Rectangle(493, 345, 20, 20);
+	private static final long startTime = System.currentTimeMillis();
+	private static int itemsLooted = 0;
 	private boolean showPaint = true;
+	
+	private static int[] startSkillInfo[] = 
+		{
+		 	{ Skills.getActualLevel(SKILLS.ATTACK), Skills.getXP(SKILLS.ATTACK) },
+		 	{ Skills.getActualLevel(SKILLS.STRENGTH), Skills.getXP(SKILLS.STRENGTH) },
+		 	{ Skills.getActualLevel(SKILLS.DEFENCE), Skills.getXP(SKILLS.DEFENCE) },
+		 	//{ Skills.getActualLevel(SKILLS.HITPOINTS), Skills.getXP(SKILLS.HITPOINTS) },
+		 	//{ Skills.getActualLevel(SKILLS.RANGED), Skills.getXP(SKILLS.RANGED) },
+		 	//{ Skills.getActualLevel(SKILLS.MAGIC), Skills.getXP(SKILLS.MAGIC) },
+		};
 
 	@Override
 	public void onPaint(Graphics g) {
 		if (showPaint) {
+			long timeRan = System.currentTimeMillis() - startTime;
+			
 			g.drawImage(paint, 3, 345, null);
 			g.setFont(font);
 			g.setColor(colorOrange);
-			g.drawString("Status: " + statusText, 25, 416);
-
-			// todo: add more stats
+			g.drawString("Status: " + statusText, 25, 415); 
+			g.drawString("Runtime: "+ Timing.msToString(timeRan), 25, 435);
+			g.drawString("Total items looted: "+ itemsLooted, 25, 455);
+			
+			g.drawString("Attack xp earned: "+ (Skills.getXP(SKILLS.ATTACK) - startSkillInfo[0][1]) + " ("+(Skills.getActualLevel(SKILLS.ATTACK) - startSkillInfo[0][0]+")"), 280, 415);
+			g.drawString("Strength xp earned: "+ (Skills.getXP(SKILLS.STRENGTH) - startSkillInfo[1][1]) + " ("+(Skills.getActualLevel(SKILLS.STRENGTH) - startSkillInfo[1][0]+")"), 280, 435);
+			g.drawString("Defence xp earned: "+ (Skills.getXP(SKILLS.DEFENCE) - startSkillInfo[2][1]) + " ("+(Skills.getActualLevel(SKILLS.DEFENCE) - startSkillInfo[2][0]+")"), 280, 455);
 
 		} else
 			g.drawImage(paintShow, paintToggle.x, paintToggle.y, null);
