@@ -15,12 +15,10 @@ import java.net.URL;
 import javax.imageio.ImageIO;
 
 import org.tribot.api.General;
-import org.tribot.api.types.generic.Filter;
 import org.tribot.api2007.Banking;
 import org.tribot.api2007.Camera;
 import org.tribot.api2007.Inventory;
 import org.tribot.api2007.NPCs;
-import org.tribot.api2007.Objects;
 import org.tribot.api2007.PathFinding;
 import org.tribot.api2007.Player;
 import org.tribot.api2007.Walking;
@@ -63,35 +61,38 @@ public class LANChaosKiller extends Script implements Painting, MouseActions {
 	// Script defines
 	private static int foodID = 379; // todo: grab from settings
 	private static int foodCount = 1; // todo: grab from settings
-	private static int towerDoorID = 543;
-	private static int logFromBankID = 9330;
-	private static int logFromTowerID = 9328;
+	
+	private static final int LOG_EAST_MODEL_POINT_COUNT = 54;
+	private static final int LOG_WEST_MODEL_POINT_COUNT = 114;
+	
+	private static final int TOWER_DOOR_MODEL_POINT_COUNT = 168;
+	private static final int MAX_FAILSAFE_ATTEMPTS = 20;
+	
+	private static final RSTile POS_OUTSIDE_DRUID_TOWER_DOOR = new RSTile(2565, 3356);
+	private static final RSTile POS_DRUID_TOWER_CENTER = new RSTile(2562, 3356);
+	private static final RSTile POS_BANK_CENTER = new RSTile(2617, 3332);
+	private static final RSTile POS_LOG_EAST = new RSTile(2602, 3336);
+	private static final RSTile POS_LOG_WEST = new RSTile(2598, 3336);
 
-	private static final RSTile druidTowerDoor = new RSTile(2565, 3356);
-	private static final RSTile druidTowerCenter = new RSTile(2562, 3356);
-	private static final RSTile bankTile = new RSTile(2617, 3332);
-	private static final RSTile log_east = new RSTile(2602, 3336);
-	private static final RSTile log_west = new RSTile(2598, 3336);
-
-	private static final RSTile[] failed_log_walk = new RSTile[] {
+	private static final RSTile[] POS_LOG_WALK_FAILED = new RSTile[] {
 			new RSTile(2598, 3329), // east (tower side)
 			new RSTile(2604, 3330) // west (bank side)
 	};
-
-	private final static RSTile[] logToTower = new RSTile[] {
-			new RSTile(2598, 3336, 0), 
-			new RSTile(2588, 3340, 0),
-			new RSTile(2587, 3344, 0), 
-			new RSTile(2576, 3350, 0),
-			new RSTile(2565, 3356, 0) 
-	};
-
-	private final static RSTile[] bankToLog = new RSTile[] {
+	
+	private final static RSTile[] PATH_BANK_TO_LOG = new RSTile[] {
 			new RSTile(2617, 3332, 0), 
 			new RSTile(2616, 3337, 0),
 			new RSTile(2613, 3339, 0), 
 			new RSTile(2610, 3339, 0),
 			new RSTile(2602, 3336, 0) 
+	};
+
+	private final static RSTile[] PATH_LOG_TO_TOWER = new RSTile[] {
+			new RSTile(2598, 3336, 0), 
+			new RSTile(2588, 3340, 0),
+			new RSTile(2587, 3344, 0), 
+			new RSTile(2576, 3350, 0),
+			new RSTile(2565, 3356, 0) 
 	};
 
 	@Override
@@ -104,16 +105,15 @@ public class LANChaosKiller extends Script implements Painting, MouseActions {
 
 	private State getState() {
 		if (Inventory.isFull() || (foodCount > 0 && Inventory.find(foodID).length == 0 && (player.getMaxHealth() / 2) >= player.getHealth())) {
-			if (Player.getPosition().distanceTo(bankTile) <= 2) {
-				// We are infront of at the bank and in need of some banking
-				// action.
+			if (Player.getPosition().distanceTo(POS_BANK_CENTER) <= 2) {
+				// We are at the bank and in need of some banking action.
 				return State.BANKING;
 			}
 			// Inventory is full, we should move to bank to empty it.
 			return State.GO_TO_BANK;
 		}
 		
-		if (Player.getPosition().distanceTo(druidTowerCenter) <= 2) {
+		if (Player.getPosition().distanceTo(POS_DRUID_TOWER_CENTER) <= 2) {
 			// We are at the druids (in the tower).
 			return State.PROCESS_DRUIDS;
 		}
@@ -123,24 +123,27 @@ public class LANChaosKiller extends Script implements Painting, MouseActions {
 	}
 
 	public static void doBanking() {
-		if (Player.getPosition().distanceTo(bankTile) >= 3) {
-			// failsafe.
+		// failsafe.
+		if (Player.getPosition().distanceTo(POS_BANK_CENTER) >= 3) {
 			goToBank();
 		}
 
 		statusText = "Banking..";
 
-		while (!Banking.isBankScreenOpen() || Banking.isPinScreenOpen()) {
-			Banking.openBankBooth();
-			General.sleep(200, 250);
+		int failsafe = 0;
+		while ((!Banking.isBankScreenOpen() || Banking.isPinScreenOpen()) && failsafe < MAX_FAILSAFE_ATTEMPTS) {
+			if (Banking.openBankBooth())
+				General.sleep(200, 250);
+			failsafe++;
 		}
 
 		if (Banking.isPinScreenOpen()) {
 			Banking.inPin();
 		}
 
-		while (!Banking.isBankScreenOpen()) {
+		while (!Banking.isBankScreenOpen() && failsafe < MAX_FAILSAFE_ATTEMPTS) {
 			General.sleep(100, 150);
+			failsafe++;
 		}
 
 		Banking.depositAll();
@@ -159,8 +162,7 @@ public class LANChaosKiller extends Script implements Painting, MouseActions {
 			statusText = "Eating..";
 
 			// Double inventory.find call but since 99% of the time we wont
-			// reach these conditions it's better performance to do the double
-			// call now.
+			// reach these conditions it's better performance to do the double call now.
 			RSItem[] food = Inventory.find(foodID);
 			if (food.length > 0) {
 				food[0].click("Eat");
@@ -171,74 +173,58 @@ public class LANChaosKiller extends Script implements Painting, MouseActions {
 			// todo: looting.
 
 			statusText = "Killing druids..";
-
-			RSNPC[] druids = NPCs.find(NPCs
-					.generateFilterGroup(new Filter<RSNPC>() {
-						@Override
-						public boolean accept(RSNPC npc) {
-							return !npc.isInCombat()
-									&& npc.getName() == "Chaos druid";
-						}
-					}));
-
+			
+			RSNPC[] druids = Utilities.findNearest(5, "Chaos druid", true);
 			druids = NPCs.sortByDistance(player.getPosition(), druids);
 
 			for (int i = 0; i < druids.length; i++) {
 				if (PathFinding.canReach(druids[i], false)) {
 					// We got a potential druid we can kill.
 					if (!druids[i].isOnScreen()) {
-						Camera.turnToTile(druids[i].getPosition());
+						Camera.turnToTile(druids[i]);
 					}
 
 					int failsafe = 0;
-					while (!player.isInCombat() && druids[i].isValid() && failsafe <= 20) {
-						if (!druids[i].isInCombat()) {
-							druids[i].click("Attack");
-							General.sleep(200, 300);
+					while (!player.isInCombat() && druids[i].isValid() && failsafe < MAX_FAILSAFE_ATTEMPTS) {
+						if (!druids[i].isInteractingWithMe() && !druids[i].isInCombat()) {
+							if (druids[i].click("Attack"))
+								General.sleep(50, 150);
+							
 							failsafe++;
 						}
 					}
-				}
-			}
-		} else {
-			// While we attack a druid we'll prepare for the next one.(If there
-			// are more)
+					
+					if (druids[i].isInteractingWithMe())
+					{
+						// we are in combat with current druid.
+						// while we do that, prepare for next druid
+						if (druids.length > i+1)
+						{
+							if (PathFinding.canReach(druids[i+1], false)) {
+								// We got a new potential druid we can hover over.
+								if (!druids[i+1].isOnScreen()) {
+									Camera.turnToTile(druids[i+1]);
+								}
 
-			// todo: test & debug
+								failsafe = 0;
+								while (player.isInCombat() && druids[i+1].isValid() && !druids[i+1].isInCombat() && failsafe < MAX_FAILSAFE_ATTEMPTS) {
+									if (!druids[i+1].isInCombat()) {
+										if (druids[i+1].hover())
+											General.sleep(200, 300);
+										failsafe++;
+									}
+								}
 
-			RSNPC[] druids = NPCs.find(NPCs
-					.generateFilterGroup(new Filter<RSNPC>() {
-						@Override
-						public boolean accept(RSNPC npc) {
-							return !npc.isInCombat()
-									&& npc.getName() == "Chaos druid";
+								if (!player.isInCombat() && !druids[i+1].isInCombat() && !druids[i].isInteractingWithMe()) {
+									// We killed the current druid, and next druid isn't in combat yet.
+									if (druids[i+1].click("Attack"))
+										General.sleep(2000, 3000);
+
+									General.println("Hover druid attacked");
+									// No retrying here, if it fails the states will catch back up from the start
+								}
+							}
 						}
-					}));
-
-			druids = NPCs.sortByDistance(player.getPosition(), druids);
-
-			for (int i = 0; i < druids.length; i++) {
-				if (PathFinding.canReach(druids[i], false)) {
-					// We got a new potential druid we can hover over.
-					if (!druids[i].isOnScreen()) {
-						Camera.turnToTile(druids[i].getPosition());
-					}
-
-					while (player.isInCombat() && druids[i].isValid()
-							&& !druids[i].isInCombat()) {
-						if (!druids[i].isInCombat()) {
-							druids[i].hover();
-							General.sleep(200, 300);
-						}
-					}
-
-					if (!player.isInCombat()) {
-						// We killed the current druid, and next druid isn't in
-						// combat yet.
-						druids[i + 1].click("Attack");
-
-						// No retrying here, if it fails the states will catch
-						// back up from the start
 					}
 				}
 			}
@@ -248,76 +234,104 @@ public class LANChaosKiller extends Script implements Painting, MouseActions {
 	public static void goToBank() {
 		statusText = "Going to bank..";
 
-		if (Player.getPosition().distanceTo(druidTowerCenter) <= 2) {
+		if (Player.getPosition().distanceTo(POS_DRUID_TOWER_CENTER) <= 2) {
 			// We are in the tower, first open the door.
-			RSObject door = Objects.findNearest(6, towerDoorID)[0];
-			if (door != null) {
-				while (!Player.getPosition().equals(druidTowerDoor)) {
-					door.click("Open");
-					General.sleep(500, 800);
+			RSObject[] doors = Utilities.findNearest(5, TOWER_DOOR_MODEL_POINT_COUNT);
+
+			if (doors.length > 0) {
+				Camera.turnToTile(doors[0]); // always turn the camera, otherwise it has a hard time clicking
+				int failsafe = 0;
+				
+				while (!Player.getPosition().equals(POS_OUTSIDE_DRUID_TOWER_DOOR) && failsafe < MAX_FAILSAFE_ATTEMPTS) {
+					if (doors[0].click("Open"));
+						General.sleep(500, 800);
+					failsafe++;
 				}
 			}
-		}
-
-		while (!Player.getPosition().equals(log_west)) {
-			Walking.walkPath(Walking.invertPath(logToTower));
+		}		
+		
+		int failsafe = 0;
+		while (!Player.getPosition().equals(POS_LOG_WEST) && failsafe < MAX_FAILSAFE_ATTEMPTS) {
+			Walking.walkPath(Walking.invertPath(PATH_LOG_TO_TOWER));
 			General.sleep(2000, 2500);
+			failsafe++;
 		}
 
 		// Arrived at the log crossing.
 		statusText = "Crossing log..";
 
-		RSObject log = Objects.findNearest(3, logFromTowerID)[0];
-		if (log != null) {
-			while (!Player.getPosition().equals(log_east) && !Player.getPosition().equals(failed_log_walk[1])) {
-				log.click("Walk-across");
+		RSObject[] logs = Utilities.findNearest(5, LOG_WEST_MODEL_POINT_COUNT);
+		
+		if (logs.length > 0) {
+			if (!logs[0].isOnScreen())
+				Camera.turnToTile(logs[0]);
+			
+			failsafe = 0;
+			while (!Player.getPosition().equals(POS_LOG_EAST) && !Player.getPosition().equals(POS_LOG_WALK_FAILED[1]) && failsafe < MAX_FAILSAFE_ATTEMPTS) {
+				logs[0].click("Walk-across");
 				General.sleep(4000, 5000);
+				failsafe++;
 			}
 
 			statusText = "Going to bank..";
 
-			while (Player.getPosition().distanceTo(bankTile) >= 3) {
-				Walking.walkPath(Walking.invertPath(bankToLog));
+			failsafe = 0;
+			while (Player.getPosition().distanceTo(POS_BANK_CENTER) >= 3 && failsafe < MAX_FAILSAFE_ATTEMPTS) {
+				Walking.walkPath(Walking.invertPath(PATH_BANK_TO_LOG));
 				General.sleep(2000, 2500);
+				failsafe++;
 			}
 			// Arrived at the bank
 		}
 	}
 
 	public static void goToDruids() {
-		if (!(Player.getPosition().distanceTo(druidTowerCenter) <= 2)) {
+		if (!(Player.getPosition().distanceTo(POS_DRUID_TOWER_CENTER) <= 2)) {
 			statusText = "Going to the druids..";
 
-			while (!Player.getPosition().equals(log_east)) {
-				Walking.walkPath(bankToLog);
+			int failsafe = 0;
+			while (!Player.getPosition().equals(POS_LOG_EAST) && failsafe < MAX_FAILSAFE_ATTEMPTS) {
+				Walking.walkPath(PATH_BANK_TO_LOG);
 				General.sleep(2000, 2500);
+				failsafe++;
 			}
 
 			// Arrived at the log crossing.
 			statusText = "Crossing log..";
-
-			RSObject log = Objects.findNearest(3, logFromBankID)[0];
-			if (log != null) {
-				while (!Player.getPosition().equals(log_west) && !Player.getPosition().equals(failed_log_walk[0])) {
-					log.click("Walk-across");
-					General.sleep(800, 1000);
+			
+			RSObject[] logs = Utilities.findNearest(5, LOG_EAST_MODEL_POINT_COUNT);
+			
+			if (logs.length > 0) {
+				if (!logs[0].isOnScreen())
+					Camera.turnToTile(logs[0]);
+				
+				failsafe = 0;
+				while (!Player.getPosition().equals(POS_LOG_WEST) && !Player.getPosition().equals(POS_LOG_WALK_FAILED[0]) && failsafe < MAX_FAILSAFE_ATTEMPTS) {
+					if (logs[0].click("Walk-across"))
+						General.sleep(800, 1000);
+					failsafe++;
 				}
 
 				statusText = "Going to the druids..";
 
-				while (!Player.getPosition().equals(druidTowerDoor)) {
-					Walking.walkPath(logToTower);
+				failsafe = 0;
+				while (!Player.getPosition().equals(POS_OUTSIDE_DRUID_TOWER_DOOR) && failsafe < MAX_FAILSAFE_ATTEMPTS) {
+					Walking.walkPath(PATH_LOG_TO_TOWER);
 					General.sleep(2000, 2500);
 				}
 
 				// Arrived at the tower, lets picklock the door
 				statusText = "Picklocking door..";
 
-				RSObject door = Objects.findNearest(10, towerDoorID)[0];
-				if (door != null) {
-					while ((!(Player.getPosition().distanceTo(druidTowerCenter) <= 2)) && Player.getPosition().equals(druidTowerDoor)) {
-						door.click("Pick-lock");
-						General.sleep(500, 800);
+				RSObject[] doors = Utilities.findNearest(5, TOWER_DOOR_MODEL_POINT_COUNT);
+				
+				if (doors.length > 0) {
+					Camera.turnToTile(doors[0]); // always turn the camera, otherwise it has a hard time clicking
+					
+					failsafe = 0;
+					while ((!(Player.getPosition().distanceTo(POS_DRUID_TOWER_CENTER) <= 2)) && Player.getPosition().equals(POS_OUTSIDE_DRUID_TOWER_DOOR) && failsafe < MAX_FAILSAFE_ATTEMPTS) {
+						if (doors[0].click("Pick-lock"));
+							General.sleep(500, 800);
 					}
 				}
 			}
