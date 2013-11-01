@@ -13,7 +13,6 @@ import java.io.IOException;
 import java.net.URL;
 
 import javax.imageio.ImageIO;
-
 import org.tribot.api.General;
 import org.tribot.api.Timing;
 import org.tribot.api2007.Banking;
@@ -65,13 +64,13 @@ public class LANChaosKiller extends Script implements Painting, MouseActions {
 
 	// Script defines
 	private static int foodID = 379; // todo: grab from settings
-	private static int foodCount = 1; // todo: grab from settings
+	private static int foodCount = 0; // todo: grab from settings
 	private static final int LOOT_IDS[] = { 
 			563, // law rune
 			561, // nature rune
-			199, // guam leaf
-			201, // marrentill
-			203, // tarromin
+			//199, // guam leaf
+			//201, // marrentill
+			//203, // tarromin
 			205, // harralander
 			207, // ranarr
 			209, // irit
@@ -147,7 +146,7 @@ public class LANChaosKiller extends Script implements Painting, MouseActions {
 	}
 
 	public static void doBanking() {
-		// failsafe.
+
 		if (Player.getPosition().distanceTo(POS_BANK_CENTER) >= 3) {
 			goToBank();
 		}
@@ -193,8 +192,7 @@ public class LANChaosKiller extends Script implements Painting, MouseActions {
 			}
 		}
 
-		if (!player.isInCombat()) {
-
+		if (!Utilities.isUnderAttack()) {
 			//Lets do some looting.
 			RSGroundItem lootItems[] = GroundItems.findNearest(LOOT_IDS);
 			if (lootItems.length > 0)
@@ -202,6 +200,9 @@ public class LANChaosKiller extends Script implements Painting, MouseActions {
 				statusText = "Looting..";
 				for (RSGroundItem item : lootItems)
 				{
+					if (Inventory.isFull())
+						return;
+					
 					// Apparently just 'Take' would causes issues with multiple items on 1 tile.
 					if (item.click("Take "+ item.getDefinition().getName()))
 					{
@@ -210,7 +211,6 @@ public class LANChaosKiller extends Script implements Painting, MouseActions {
 					}
 				}
 			}
-			
 
 			statusText = "Killing druids..";
 			
@@ -225,10 +225,10 @@ public class LANChaosKiller extends Script implements Painting, MouseActions {
 					}
 
 					int failsafe = 0;
-					while (!player.isInCombat() && druids[i].isValid() && failsafe < MAX_FAILSAFE_ATTEMPTS) {
-						if (!druids[i].isInteractingWithMe() && !druids[i].isInCombat()) {
+					while (!druids[i].isInteractingWithMe() && druids[i].isValid() && failsafe < MAX_FAILSAFE_ATTEMPTS) {
+						if (!druids[i].isInCombat()) {
 							if (druids[i].click("Attack"))
-								General.sleep(50, 150);
+								General.sleep(250, 300);
 							
 							failsafe++;
 						}
@@ -247,7 +247,7 @@ public class LANChaosKiller extends Script implements Painting, MouseActions {
 								}
 
 								failsafe = 0;
-								while (player.isInCombat() && druids[i+1].isValid() && !druids[i+1].isInCombat() && failsafe < MAX_FAILSAFE_ATTEMPTS) {
+								while (druids[i].isInteractingWithMe() && druids[i+1].isValid() && !druids[i+1].isInCombat() && failsafe < MAX_FAILSAFE_ATTEMPTS) {
 									if (!druids[i+1].isInCombat()) {
 										if (druids[i+1].hover())
 											General.sleep(200, 300);
@@ -255,7 +255,7 @@ public class LANChaosKiller extends Script implements Painting, MouseActions {
 									}
 								}
 
-								if (!player.isInCombat() && !druids[i+1].isInCombat() && !druids[i].isInteractingWithMe()) {
+								if (!druids[i+1].isInCombat() && Utilities.isUnderAttack()) {
 									// We killed the current druid, and next druid isn't in combat yet.
 									if (druids[i+1].click("Attack"))
 										General.sleep(2000, 3000);
@@ -401,7 +401,6 @@ public class LANChaosKiller extends Script implements Painting, MouseActions {
 	public void onPaint(Graphics g) {
 		if (showPaint) {
 			long timeRan = System.currentTimeMillis() - startTime;
-			
 			g.drawImage(paint, 3, 345, null);
 			g.setFont(font);
 			g.setColor(colorOrange);
