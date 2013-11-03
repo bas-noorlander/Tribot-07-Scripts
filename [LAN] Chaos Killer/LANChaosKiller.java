@@ -110,7 +110,7 @@ enum State {
 	abstract void run();
 }
 
-@ScriptManifest(authors = { "Laniax" }, category = "Combat", name = "[LAN] ChaosKiller", description = "Flawless Ardougne Chaos Druid Killer.")
+@ScriptManifest(authors = { "Laniax" }, category = "Combat", name = "[LAN] Chaos Killer", description = "Flawless Ardougne Chaos Druid Killer.")
 public class LANChaosKiller extends Script implements Painting, MouseActions {
 	// Global defines
 	private static boolean quitting = false;
@@ -196,7 +196,7 @@ public class LANChaosKiller extends Script implements Painting, MouseActions {
 			return State.GO_TO_BANK;
 		}
 		
-		if (Player.getPosition().distanceTo(POS_DRUID_TOWER_CENTER) <= 3) {
+		if (Player.getPosition().distanceTo(POS_DRUID_TOWER_CENTER) <= 3 && !Player.getPosition().equals(POS_OUTSIDE_DRUID_TOWER_DOOR)) {
 			// We are at the druids (in the tower).
 			return State.PROCESS_DRUIDS;
 		}
@@ -262,18 +262,15 @@ public class LANChaosKiller extends Script implements Painting, MouseActions {
 					ids[i] = LOOT_IDS.get(i).intValue();
 				
 				RSGroundItem lootItems[] = GroundItems.findNearest(ids);
-				if (lootItems.length > 0)
-				{
+				if (lootItems.length > 0) {
 					statusText = "Looting..";
 					druidsKilledSinceLastLoot = 0;
-					for (RSGroundItem item : lootItems)
-					{
+					for (RSGroundItem item : lootItems) {
 						if (Inventory.isFull())
 							return;
 						
 						// Apparently just 'Take' would causes issues with multiple items on 1 tile.
-						if (item.click("Take "+ item.getDefinition().getName()))
-						{
+						if (item.click("Take "+ item.getDefinition().getName())) {
 							itemsLooted++;
 							General.sleep(1000,2000);
 						}
@@ -392,8 +389,12 @@ public class LANChaosKiller extends Script implements Painting, MouseActions {
 				
 				failsafe = 0;
 				while (!Player.getPosition().equals(POS_LOG_EAST) && !Player.getPosition().equals(POS_LOG_WALK_FAILED[1]) && failsafe < MAX_FAILSAFE_ATTEMPTS) {
-					logs[0].click("Walk-across");
-					General.sleep(4000, 5000);
+					if (!Player.isMoving()) {
+						if (logs[0].click("Walk-across"))
+							General.sleep(4000, 5000);
+						
+					}
+					General.sleep(100, 150);
 					failsafe++;
 				}
 			}
@@ -418,8 +419,7 @@ public class LANChaosKiller extends Script implements Painting, MouseActions {
 		if (!(Player.getPosition().distanceTo(POS_DRUID_TOWER_CENTER) <= 3)) {
 			
 			// If the script gets started (or a dc, etc) with an empty inventory on the west side of the river we would get stuck.
-			if (Player.getPosition().distanceTo(POS_LOG_WEST) > Player.getPosition().distanceTo(POS_LOG_EAST))
-			{
+			if (Player.getPosition().distanceTo(POS_LOG_WEST) > Player.getPosition().distanceTo(POS_LOG_EAST)) {
 				statusText = "Going to log..";
 				
 				int failsafe = 0;
@@ -445,8 +445,12 @@ public class LANChaosKiller extends Script implements Painting, MouseActions {
 					
 					failsafe = 0;
 					while (!Player.getPosition().equals(POS_LOG_WEST) && !Player.getPosition().equals(POS_LOG_WALK_FAILED[0]) && failsafe < MAX_FAILSAFE_ATTEMPTS) {
-						if (logs[0].click("Walk-across"))
-							General.sleep(800, 1000);
+						if (!Player.isMoving()) {
+							if (logs[0].click("Walk-across"))
+								General.sleep(4000, 5000);
+							
+						}
+						General.sleep(100, 150);
 						failsafe++;
 					}
 					
@@ -495,8 +499,7 @@ public class LANChaosKiller extends Script implements Painting, MouseActions {
 	private static int itemsLooted = 0;
 	private boolean showPaint = true;
 	
-	private static int startSkillInfo[] = 
-		{
+	private static int startSkillInfo[] = {
 		 	 Skills.getXP(SKILLS.ATTACK),
 		 	 Skills.getXP(SKILLS.STRENGTH),
 		 	 Skills.getXP(SKILLS.DEFENCE)
@@ -577,24 +580,24 @@ public class LANChaosKiller extends Script implements Painting, MouseActions {
 			lootHarralander = new JCheckBox();
 			lootRanarr = new JCheckBox();
 			lootIrit = new JCheckBox();
-		    lootAventoe = new JCheckBox();
+			lootAventoe = new JCheckBox();
 			lootKwuarm = new JCheckBox();
-		    lootCadantine = new JCheckBox();
+			lootCadantine = new JCheckBox();
 			lootDwarf = new JCheckBox();
 			lootLantadyme = new JCheckBox();
 			lootTorsol = new JCheckBox();
-			
+
 			lootLaw = new JCheckBox();
 			lootNature = new JCheckBox();
 			lootBolts = new JCheckBox();
 			lootJavelin = new JCheckBox();
-	        backgroundLabel = new JLabel();
-	        
-	        foodCountSpinner = new JSpinner();
-	        foodIDSpinner = new JSpinner();
-	        mouseSpeed = new JSlider();
-	        btnSave = new JButton();
-			
+			backgroundLabel = new JLabel();
+
+			foodCountSpinner = new JSpinner();
+			foodIDSpinner = new JSpinner();
+			mouseSpeed = new JSlider();
+			btnSave = new JButton();
+
 			checkBoxes.put(lootGuam, ItemIDs.GUAM_LEAF);
 			checkBoxes.put(lootMarrentill, ItemIDs.MARRENTILL);
 			checkBoxes.put(lootTarromin, ItemIDs.TARROMIN);
@@ -611,158 +614,156 @@ public class LANChaosKiller extends Script implements Painting, MouseActions {
 			checkBoxes.put(lootNature, ItemIDs.NATURE_RUNE);
 			checkBoxes.put(lootBolts, ItemIDs.MITHRIL_BOLTS);
 			checkBoxes.put(lootJavelin, ItemIDs.RUNE_JAVELIN);
-			
+
 			setResizable(false);
-	        setDefaultCloseOperation(WindowConstants.HIDE_ON_CLOSE);
-	        setBounds(new Rectangle(0, 0, 337, 495));
-	        setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
-	        setUndecorated(true);
-	        setPreferredSize(new Dimension(337, 495));
-	        getContentPane().setLayout(null);
-	        
-	        for (Entry<JCheckBox, ItemIDs> entry : checkBoxes.entrySet()) {
-	        	JCheckBox checkBox = entry.getKey();
-	        	checkBox.setOpaque(false);
-	        	getContentPane().add(checkBox);
-	        }
+			setDefaultCloseOperation(WindowConstants.HIDE_ON_CLOSE);
+			setBounds(new Rectangle(0, 0, 337, 495));
+			setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
+			setUndecorated(true);
+			setPreferredSize(new Dimension(337, 495));
+			getContentPane().setLayout(null);
 
-	        lootKwuarm.setBounds(250, 100, 100, 27);
-	        lootGuam.setBounds(20, 70, 100, 27);
-	        lootMarrentill.setBounds(20, 100, 100, 27);
-	        lootTarromin.setBounds(130, 40, 100, 27);
-	        lootHarralander.setBounds(130, 70, 110, 27);
-	        lootRanarr.setBounds(130, 100, 70, 27);
-	        lootIrit.setBounds(250, 40, 100, 27);
-	        lootAventoe.setBounds(250, 70, 100, 27);
-	        lootDwarf.setBounds(20, 170, 100, 27);
-	        lootCadantine.setBounds(20, 140, 100, 27);
-	        lootLantadyme.setBounds(130, 140, 110, 27);
-	        lootTorsol.setBounds(130, 170, 100, 27);
-	        lootLaw.setBounds(20, 230, 70, 27);
-	        lootNature.setBounds(20, 260, 110, 27);
-	        lootBolts.setBounds(130, 230, 110, 27);
-	        lootJavelin.setBounds(130, 260, 110, 27);
+			for (Entry<JCheckBox, ItemIDs> entry : checkBoxes.entrySet()) {
+				JCheckBox checkBox = entry.getKey();
+				checkBox.setOpaque(false);
+				getContentPane().add(checkBox);
+			}
 
-	        mouseSpeed.setOpaque(false);
-	        getContentPane().add(mouseSpeed);
-	        mouseSpeed.setBounds(70, 345, 200, 23);
-	        mouseSpeed.setMaximum(200);
-	        mouseSpeed.setMinimum(10);
-	        mouseSpeed.setValue(Mouse.getSpeed());
-	        
-	        foodCountSpinner.setOpaque(false);
-	        foodCountSpinner.setModel(new SpinnerNumberModel(1, 0, 28, 1));
-	        getContentPane().add(foodCountSpinner);
-	        foodCountSpinner.setBounds(280, 302, 40, 20);
+			lootKwuarm.setBounds(250, 100, 100, 27);
+			lootGuam.setBounds(20, 70, 100, 27);
+			lootMarrentill.setBounds(20, 100, 100, 27);
+			lootTarromin.setBounds(130, 40, 100, 27);
+			lootHarralander.setBounds(130, 70, 110, 27);
+			lootRanarr.setBounds(130, 100, 70, 27);
+			lootIrit.setBounds(250, 40, 100, 27);
+			lootAventoe.setBounds(250, 70, 100, 27);
+			lootDwarf.setBounds(20, 170, 100, 27);
+			lootCadantine.setBounds(20, 140, 100, 27);
+			lootLantadyme.setBounds(130, 140, 110, 27);
+			lootTorsol.setBounds(130, 170, 100, 27);
+			lootLaw.setBounds(20, 230, 70, 27);
+			lootNature.setBounds(20, 260, 110, 27);
+			lootBolts.setBounds(130, 230, 110, 27);
+			lootJavelin.setBounds(130, 260, 110, 27);
 
-	        foodIDSpinner.setOpaque(false);
-	        foodIDSpinner.setModel(new SpinnerNumberModel(Integer.valueOf(379), 0, null, Integer.valueOf(1)));
-	        getContentPane().add(foodIDSpinner);
-	        foodIDSpinner.setBounds(100, 302, 60, 20);
+			mouseSpeed.setOpaque(false);
+			getContentPane().add(mouseSpeed);
+			mouseSpeed.setBounds(70, 345, 200, 23);
+			mouseSpeed.setMaximum(200);
+			mouseSpeed.setMinimum(10);
+			mouseSpeed.setValue(Mouse.getSpeed());
 
-	        btnSave.setText("Save Settings");
-	        btnSave.setOpaque(false);
-	        btnSave.addActionListener(new ActionListener() {
-	            public void actionPerformed(ActionEvent evt) {
-	                btnSaveSettingsClicked(evt);
-	            }
-	        });
-	        getContentPane().add(btnSave);
-	        btnSave.setBounds(90, 395, 170, 40);
+			foodCountSpinner.setOpaque(false);
+			foodCountSpinner.setModel(new SpinnerNumberModel(1, 0, 28, 1));
+			getContentPane().add(foodCountSpinner);
+			foodCountSpinner.setBounds(280, 302, 40, 20);
 
-	        try {
+			foodIDSpinner.setOpaque(false);
+			foodIDSpinner.setModel(new SpinnerNumberModel(Integer.valueOf(379), 0, null, Integer.valueOf(1)));
+			getContentPane().add(foodIDSpinner);
+			foodIDSpinner.setBounds(100, 302, 60, 20);
+
+			btnSave.setText("Save Settings");
+			btnSave.setOpaque(false);
+			btnSave.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent evt) {
+					btnSaveSettingsClicked(evt);
+				}
+			});
+			getContentPane().add(btnSave);
+			btnSave.setBounds(90, 395, 170, 40);
+
+			try {
 				backgroundLabel.setIcon(new ImageIcon(new URL("https://dl.dropboxusercontent.com/u/21676524/RS/ChaosKiller/Script/settings.png")));
 			} catch (MalformedURLException e) {
 				e.printStackTrace();
 			}
 
-	        backgroundLabel.setText("Failed to load background :(");
-	        backgroundLabel.addMouseListener(new MouseAdapter() {
-	            public void mousePressed(MouseEvent evt) {
-	            	backgroundMousePressed(evt);
-	            }
-	        });
-	        backgroundLabel.addMouseMotionListener(new MouseMotionAdapter() {
-	            public void mouseDragged(MouseEvent evt) {
-	                backgroundMouseDragged(evt);
-	            }
-	        });
-	        getContentPane().add(backgroundLabel);
-	        backgroundLabel.setBounds(0, 0, 337, 495);
+			backgroundLabel.setText("Failed to load background :(");
+			backgroundLabel.addMouseListener(new MouseAdapter() {
+				public void mousePressed(MouseEvent evt) { 
+					backgroundMousePressed(evt);
+				}
+			});
+			backgroundLabel.addMouseMotionListener(new MouseMotionAdapter() {
+				public void mouseDragged(MouseEvent evt) {
+					backgroundMouseDragged(evt);
+				}
+			});
+			getContentPane().add(backgroundLabel);
+			backgroundLabel.setBounds(0, 0, 337, 495);
 
-	        for (int i = 1; i <= LOOT_IDS.toArray().length; i++) {
-	        	for (Entry<JCheckBox, ItemIDs> entry : checkBoxes.entrySet()) {
-	        		if (LOOT_IDS.toArray()[i].equals(entry.getValue().getValue())) {
-	        			entry.getKey().setSelected(true);
-	        			break;
-	        		}
-	        	}
-	        }
-	        
-	        pack();
-	        
-	        this.setLocationRelativeTo(null);
+			for (int i = 1; i <= LOOT_IDS.toArray().length; i++) {
+				for (Entry<JCheckBox, ItemIDs> entry : checkBoxes.entrySet()) {
+					if (LOOT_IDS.toArray()[i].equals(entry.getValue().getValue())) {
+						entry.getKey().setSelected(true);
+						break;
+					}
+				}
+			}
+
+			pack();
+
+			this.setLocationRelativeTo(null);
 		}
 	    
-	    protected void backgroundMousePressed(MouseEvent evt) {
-	    	this.start_drag = this.getScreenLocation(evt);
-	        this.start_loc = this.getLocation();
+		protected void backgroundMousePressed(MouseEvent evt) {
+			this.start_drag = this.getScreenLocation(evt);
+			this.start_loc = this.getLocation();
 		}
-	    
-	    Point getScreenLocation(MouseEvent e) {
-	        Point cursor = e.getPoint();
-	        Point target_location = this.getLocationOnScreen();
-	        return new Point((int) (target_location.getX() + cursor.getX()),
-	            (int) (target_location.getY() + cursor.getY()));
-	      }
+
+		Point getScreenLocation(MouseEvent e) {
+			Point cursor = e.getPoint();
+			Point target_location = this.getLocationOnScreen();
+			return new Point((int) (target_location.getX() + cursor.getX()), (int) (target_location.getY() + cursor.getY()));
+		}
 
 		protected void backgroundMouseDragged(MouseEvent evt) {
-	    	 Point current = this.getScreenLocation(evt);
-	    	 Point offset = new Point((int) current.getX() - (int) start_drag.getX(), (int) current.getY() - (int) start_drag.getY());
-	    	 Point new_location = new Point((int) (this.start_loc.getX() + offset.getX()), (int) (this.start_loc.getY() + offset.getY()));
-	    	 this.setLocation(new_location);
-			
+			Point current = this.getScreenLocation(evt);
+			Point offset = new Point((int) current.getX() - (int) start_drag.getX(), (int) current.getY() - (int) start_drag.getY());
+			Point new_location = new Point((int) (this.start_loc.getX() + offset.getX()), (int) (this.start_loc.getY() + offset.getY()));
+			this.setLocation(new_location);
+
 		}
 
 		protected void btnSaveSettingsClicked(ActionEvent evt) {
-	    	
-	    	LOOT_IDS.clear();
-	    	
-	    	for (Entry<JCheckBox, ItemIDs> entry : checkBoxes.entrySet()){
-	    		if (entry.getKey().isSelected())
-	    			LOOT_IDS.add(entry.getValue().getValue());
-	    	}
-	    	
-	    	Mouse.setSpeed(mouseSpeed.getValue());
-	    	
-	    	foodID = (int)foodIDSpinner.getValue();
-	    	foodCount = (int)foodCountSpinner.getValue();
-	    	
-	    	waitForGUI = false;
-	    	this.setVisible(false);
-		}
-                  
-	    private JButton btnSave;
-	    private JLabel backgroundLabel;
-	    private JCheckBox lootAventoe;
-	    private JCheckBox lootBolts;
-	    private JCheckBox lootCadantine;
-	    private JCheckBox lootDwarf;
-	    private JCheckBox lootGuam;
-	    private JCheckBox lootHarralander;
-	    private JCheckBox lootIrit;
-	    private JCheckBox lootJavelin;
-	    private JCheckBox lootKwuarm;
-	    private JCheckBox lootLantadyme;
-	    private JCheckBox lootLaw;
-	    private JCheckBox lootMarrentill;
-	    private JCheckBox lootNature;
-	    private JCheckBox lootRanarr;
-	    private JCheckBox lootTarromin;
-	    private JCheckBox lootTorsol;
-	    private JSlider mouseSpeed;
-	    private JSpinner foodCountSpinner;
-	    private JSpinner foodIDSpinner;
-	}
 
+			LOOT_IDS.clear();
+
+			for (Entry<JCheckBox, ItemIDs> entry : checkBoxes.entrySet()) {
+				if (entry.getKey().isSelected())
+					LOOT_IDS.add(entry.getValue().getValue());
+			}
+
+			Mouse.setSpeed(mouseSpeed.getValue());
+
+			foodID = (int) foodIDSpinner.getValue();
+			foodCount = (int) foodCountSpinner.getValue();
+
+			waitForGUI = false;
+			this.setVisible(false);
+		}
+
+		private JButton btnSave;
+		private JLabel backgroundLabel;
+		private JCheckBox lootAventoe;
+		private JCheckBox lootBolts;
+		private JCheckBox lootCadantine;
+		private JCheckBox lootDwarf;
+		private JCheckBox lootGuam;
+		private JCheckBox lootHarralander;
+		private JCheckBox lootIrit;
+		private JCheckBox lootJavelin;
+		private JCheckBox lootKwuarm;
+		private JCheckBox lootLantadyme;
+		private JCheckBox lootLaw;
+		private JCheckBox lootMarrentill;
+		private JCheckBox lootNature;
+		private JCheckBox lootRanarr;
+		private JCheckBox lootTarromin;
+		private JCheckBox lootTorsol;
+		private JSlider mouseSpeed;
+		private JSpinner foodCountSpinner;
+		private JSpinner foodIDSpinner;
+	}
 }
