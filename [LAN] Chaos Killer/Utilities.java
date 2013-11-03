@@ -23,7 +23,9 @@ public class Utilities {
 		return NPCs.find(NPCs.generateFilterGroup(new Filter<RSNPC>() {
 					@Override
 					public boolean accept(RSNPC npc) {
-						return IN_COMBAT_CHECK ?  !npc.isInCombat() && npc.getName().equals(NPC_NAME) : npc.getName().equals(NPC_NAME);
+						if (npc != null && npc.getName() != null)
+							return IN_COMBAT_CHECK ?  !npc.isInCombat() && npc.getName().equals(NPC_NAME) : npc.getName().equals(NPC_NAME);
+						return false;
 					}
 				}));
 	}
