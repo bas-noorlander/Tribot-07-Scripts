@@ -62,6 +62,7 @@ import org.tribot.api2007.types.RSPlayer;
 import org.tribot.api2007.types.RSTile;
 import org.tribot.script.interfaces.MouseActions;
 import org.tribot.script.interfaces.Painting;
+import org.tribot.script.interfaces.RandomEvents;
 
 enum ItemIDs {
 	// Herbs
@@ -111,7 +112,7 @@ enum State {
 }
 
 @ScriptManifest(authors = { "Laniax" }, category = "Combat", name = "[LAN] Chaos Killer", description = "Flawless Ardougne Chaos Druid Killer.")
-public class LANChaosKiller extends Script implements Painting, MouseActions {
+public class LANChaosKiller extends Script implements Painting, MouseActions, RandomEvents{
 	// Global defines
 	private static boolean quitting = false;
 	private static String statusText = "Starting..";
@@ -121,17 +122,20 @@ public class LANChaosKiller extends Script implements Painting, MouseActions {
 	// Script defines
 	private static int foodID = 0;
 	private static int foodCount = 0;
+	private static int eatBelowPercent = 50;
 	private static int druidsKilledSinceLastLoot = 0;
 	public static final ArrayList<Integer> LOOT_IDS = new ArrayList<Integer>();
 	
 	private static final int LOG_EAST_MODEL_POINT_COUNT = 54;
 	private static final int LOG_WEST_MODEL_POINT_COUNT = 114;
-	
+	private static final int TOWER_LADDER_TO_DOWNSTAIRS_MODEL_POINT_COUNT = 270;
+	private static final int TOWER_LADDER_FROM_DOWNSTAIRS_MODEL_POINT_COUNT = 288;
 	private static final int TOWER_DOOR_MODEL_POINT_COUNT = 168;
 	private static final int MAX_FAILSAFE_ATTEMPTS = 20;
 	
 	private static final int MINIMUM_RUN_ENERGY = 25;
 	
+	private static final RSTile POS_DOWNSTAIRS_TOWER = new RSTile(2563, 9756);
 	private static final RSTile POS_OUTSIDE_DRUID_TOWER_DOOR = new RSTile(2565, 3356);
 	private static final RSTile POS_DRUID_TOWER_CENTER = new RSTile(2562, 3356);
 	private static final RSTile POS_BANK_CENTER = new RSTile(2617, 3332);
@@ -179,20 +183,71 @@ public class LANChaosKiller extends Script implements Painting, MouseActions {
 		
 		while (waitForGUI)
 			sleep(250);
-
+		
 		while (!quitting) {
 			getState().run();
 			sleep(General.random(40, 80));
 		}
 	}
 
+	@Override
+	public void onRandom(RANDOM_SOLVERS random) {
+		if (random.equals(RANDOM_SOLVERS.COMBATRANDOM)) {
+			if (getState().equals(State.PROCESS_DRUIDS)) {
+				statusText = "Yikes! a nasty random!";
+				
+				RSObject[] stairs = Utilities.findNearest(6, TOWER_LADDER_TO_DOWNSTAIRS_MODEL_POINT_COUNT);
+				if (stairs != null && stairs.length > 0) {
+					if (!stairs[0].isOnScreen())
+						Camera.turnToTile(stairs[0]);
+					
+					while (!Player.getPosition().equals(POS_DOWNSTAIRS_TOWER) && stairs[0].isOnScreen()) {
+						if (stairs[0].click("Climb-down"));
+							sleep(250,300);
+					}
+					
+					statusText = "Waiting till it's safe!";
+					
+					// Okay, we're downstairs, away from the nasty swarm/evil chicken.. let's wait a bit here, shall we?
+					sleep(10000,12000);
+					
+					// Okay we should be good to go again, lets go up the stairs and continue :)
+					stairs = Utilities.findNearest(10, TOWER_LADDER_FROM_DOWNSTAIRS_MODEL_POINT_COUNT);
+					if (stairs != null && stairs.length > 0) {
+						if (!stairs[0].isOnScreen())
+							Camera.turnToTile(stairs[0]);
+						while (Player.getPosition().equals(POS_DOWNSTAIRS_TOWER) && stairs[0].isOnScreen()) {
+							if (stairs[0].click("Climb-up"));
+								sleep(250,300);
+						}
+					} else {
+						// Well.. shit.
+						quitting = true;
+						General.println("Couldn't find the stairs back up! :( quitting script.");
+					}
+					
+			} else {
+			}
+		}
+		}
+	}
+
+	@Override
+	public boolean randomFailed(RANDOM_SOLVERS arg0) {
+		return false;
+	}
+
+	@Override
+	public void randomSolved(RANDOM_SOLVERS random) {
+	}
+
 	private State getState() {
-		if (Inventory.isFull() || (foodCount > 0 && Inventory.find(foodID).length == 0 && (player.getMaxHealth() / 2) <= player.getHealth())) {
+		if (Inventory.isFull() || (foodCount > 0 && Inventory.find(foodID).length == 0)) {
 			if (Player.getPosition().distanceTo(POS_BANK_CENTER) <= 2) {
 				// We are at the bank and in need of some banking action.
 				return State.BANKING;
 			}
-			// Inventory is full, we should move to bank to empty it.
+			// Inventory is full, or food is gone.. we should move to bank.
 			return State.GO_TO_BANK;
 		}
 		
@@ -200,8 +255,7 @@ public class LANChaosKiller extends Script implements Painting, MouseActions {
 			// We are at the druids (in the tower).
 			return State.PROCESS_DRUIDS;
 		}
-		// We have free space in inventory, so lets go to the druids and fill it
-		// up!
+		// We have free space in inventory, so lets go to the druids and fill it up!
 		return State.GO_TO_DRUIDS;
 	}
 
@@ -238,24 +292,31 @@ public class LANChaosKiller extends Script implements Painting, MouseActions {
 		}
 		Banking.close();
 	}
-
-	public static void doProcessDruids() {
-		if (foodCount > 0 && (player.getMaxHealth() / 3) > player.getHealth() && Inventory.find(foodID).length > 0) {
-			// health is below 33,3%. we have food, we should eat.
-			statusText = "Eating..";
-
-			// Double inventory.find call but since 99% of the time we wont
-			// reach these conditions it's better performance to do the double call now.
+	
+	private static void eatIfNecessary() {
+		
+		double currLevel = Skills.getCurrentLevel(SKILLS.HITPOINTS);
+		int hitpointsLevel = Skills.getActualLevel(SKILLS.HITPOINTS);
+		double decimal = currLevel / (double)(hitpointsLevel);
+		int percent = (int)(decimal * 100);
+		if (percent <= eatBelowPercent && foodCount > 0) {
 			RSItem[] food = Inventory.find(foodID);
 			if (food.length > 0) {
-				food[0].click("Eat");
+				statusText = "Eating..";
+				if (food.length > 0) {
+					food[0].click("Eat");
+					
+					// recursion call for if we lose a lot of health fast.
+					eatIfNecessary();
+				}
 			}
 		}
+	}
 
+	public static void doProcessDruids() {
+		eatIfNecessary();
 		if (!Utilities.isUnderAttack()) {
-
-			if (LOOT_IDS != null)
-			{
+			if (LOOT_IDS != null) {
 				//Lets do some looting.
 				int[] ids = new int[LOOT_IDS.size()];
 				for (int i=0; i< ids.length; i++)
@@ -320,6 +381,7 @@ public class LANChaosKiller extends Script implements Painting, MouseActions {
 
 								failsafe = 0;
 								while (druids[i].isInteractingWithMe() && druids[i+1].isValid() && !druids[i+1].isInCombat() && failsafe < MAX_FAILSAFE_ATTEMPTS) {
+									eatIfNecessary();
 									if (!druids[i+1].isInCombat()) {
 										if (druids[i+1].hover())
 											General.sleep(200, 300);
@@ -595,6 +657,7 @@ public class LANChaosKiller extends Script implements Painting, MouseActions {
 
 			foodCountSpinner = new JSpinner();
 			foodIDSpinner = new JSpinner();
+			eatBelowPctSpinner = new JSpinner();
 			mouseSpeed = new JSlider();
 			btnSave = new JButton();
 
@@ -662,6 +725,11 @@ public class LANChaosKiller extends Script implements Painting, MouseActions {
 			foodIDSpinner.setModel(new SpinnerNumberModel(Integer.valueOf(379), 0, null, Integer.valueOf(1)));
 			getContentPane().add(foodIDSpinner);
 			foodIDSpinner.setBounds(100, 302, 60, 20);
+			
+			eatBelowPctSpinner.setOpaque(false);
+			eatBelowPctSpinner.setModel(new SpinnerNumberModel(eatBelowPercent, 10, 90, 5));
+	        getContentPane().add(eatBelowPctSpinner);
+	        eatBelowPctSpinner.setBounds(220, 390, 40, 20);
 
 			btnSave.setText("Save Settings");
 			btnSave.setOpaque(false);
@@ -671,7 +739,7 @@ public class LANChaosKiller extends Script implements Painting, MouseActions {
 				}
 			});
 			getContentPane().add(btnSave);
-			btnSave.setBounds(90, 395, 170, 40);
+			btnSave.setBounds(90, 415, 170, 40);
 
 			try {
 				backgroundLabel.setIcon(new ImageIcon(new URL("https://dl.dropboxusercontent.com/u/21676524/RS/ChaosKiller/Script/settings.png")));
@@ -739,6 +807,7 @@ public class LANChaosKiller extends Script implements Painting, MouseActions {
 
 			foodID = (int) foodIDSpinner.getValue();
 			foodCount = (int) foodCountSpinner.getValue();
+			eatBelowPercent = (int) eatBelowPctSpinner.getValue();
 
 			waitForGUI = false;
 			this.setVisible(false);
@@ -765,5 +834,6 @@ public class LANChaosKiller extends Script implements Painting, MouseActions {
 		private JSlider mouseSpeed;
 		private JSpinner foodCountSpinner;
 		private JSpinner foodIDSpinner;
+		private JSpinner eatBelowPctSpinner;
 	}
 }
