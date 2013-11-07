@@ -315,6 +315,7 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 
 	public static void doProcessDruids() {
 		eatIfNecessary();
+		
 		if (!Utilities.isUnderAttack()) {
 			if (LOOT_IDS != null) {
 				//Lets do some looting.
@@ -361,7 +362,7 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 					}
 
 					int failsafe = 0;
-					while (!druids[i].isInteractingWithMe() && druids[i].isValid() && !druids[i].isInCombat() && failsafe < MAX_FAILSAFE_ATTEMPTS) {
+					while (!druids[i].isInteractingWithMe() && druids[i].isValid() && !druids[i].isInCombat() && !Utilities.isUnderAttack() && failsafe < MAX_FAILSAFE_ATTEMPTS) {
 						if (druids[i].click("Attack"))
 							General.sleep(250, 300);
 						
@@ -389,7 +390,7 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 									}
 								}
 
-								if (!druids[i+1].isInCombat() && Utilities.isUnderAttack()) {
+								if (!druids[i+1].isInCombat() && !Utilities.isUnderAttack()) {
 									// We killed the current druid, and next druid isn't in combat yet.
 									druidsKilledSinceLastLoot++;
 									if (druids[i+1].click("Attack"))
