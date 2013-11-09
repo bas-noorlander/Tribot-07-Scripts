@@ -47,6 +47,7 @@ import org.tribot.api2007.GameTab;
 import org.tribot.api2007.GroundItems;
 import org.tribot.api2007.Inventory;
 import org.tribot.api2007.NPCs;
+import org.tribot.api2007.Objects;
 import org.tribot.api2007.Options;
 import org.tribot.api2007.PathFinding;
 import org.tribot.api2007.Player;
@@ -118,6 +119,7 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 	private static String statusText = "Starting..";
 	private static final RSPlayer player = Player.getRSPlayer();
 	private static boolean waitForGUI = true;
+	private static boolean isDoingRandom = false;
 
 	// Script defines
 	private static int foodID = 0;
@@ -130,14 +132,15 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 	private static final int LOG_WEST_MODEL_POINT_COUNT = 114;
 	private static final int TOWER_LADDER_TO_DOWNSTAIRS_MODEL_POINT_COUNT = 270;
 	private static final int TOWER_LADDER_FROM_DOWNSTAIRS_MODEL_POINT_COUNT = 288;
+	private static final int TOWER_LADDER_FROM_UPSTAIRS_MODEL_POINT_COUNT = 204;
 	private static final int TOWER_DOOR_MODEL_POINT_COUNT = 168;
 	private static final int MAX_FAILSAFE_ATTEMPTS = 20;
 	
 	private static final int MINIMUM_RUN_ENERGY = 25;
 	
 	private static final RSTile POS_DOWNSTAIRS_TOWER = new RSTile(2563, 9756);
-	private static final RSTile POS_OUTSIDE_DRUID_TOWER_DOOR = new RSTile(2565, 3356);
-	private static final RSTile POS_DRUID_TOWER_CENTER = new RSTile(2562, 3356);
+	private static final RSTile POS_OUTSIDE_DRUID_TOWER_DOOR = new RSTile(2565, 3356, 0);
+	private static final RSTile POS_DRUID_TOWER_CENTER = new RSTile(2562, 3356, 0);
 	private static final RSTile POS_BANK_CENTER = new RSTile(2617, 3332);
 	private static final RSTile POS_LOG_EAST = new RSTile(2602, 3336);
 	private static final RSTile POS_LOG_WEST = new RSTile(2598, 3336);
@@ -185,6 +188,7 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 			sleep(250);
 		
 		while (!quitting) {
+			checkStuck();
 			getState().run();
 			sleep(General.random(40, 80));
 		}
@@ -194,6 +198,7 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 	public void onRandom(RANDOM_SOLVERS random) {
 		if (random.equals(RANDOM_SOLVERS.COMBATRANDOM)) {
 			if (getState().equals(State.PROCESS_DRUIDS)) {
+				isDoingRandom = true;
 				statusText = "Yikes! a nasty random!";
 				
 				RSObject[] stairs = Utilities.findNearest(6, TOWER_LADDER_TO_DOWNSTAIRS_MODEL_POINT_COUNT);
@@ -209,26 +214,26 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 					statusText = "Waiting till it's safe!";
 					
 					// Okay, we're downstairs, away from the nasty swarm/evil chicken.. let's wait a bit here, shall we?
-					sleep(10000,12000);
+					sleep(8000,9000);
 					
 					// Okay we should be good to go again, lets go up the stairs and continue :)
 					stairs = Utilities.findNearest(10, TOWER_LADDER_FROM_DOWNSTAIRS_MODEL_POINT_COUNT);
 					if (stairs != null && stairs.length > 0) {
 						if (!stairs[0].isOnScreen())
 							Camera.turnToTile(stairs[0]);
-						while (Player.getPosition().equals(POS_DOWNSTAIRS_TOWER) && stairs[0].isOnScreen()) {
+						while (stairs[0].isOnScreen()  && Player.getPosition().distanceTo(POS_DOWNSTAIRS_TOWER) < 15) {
 							if (stairs[0].click("Climb-up"));
 								sleep(250,300);
 						}
+						isDoingRandom = false;
 					} else {
 						// Well.. shit.
+						isDoingRandom = false;
 						quitting = true;
 						General.println("Couldn't find the stairs back up! :( quitting script.");
 					}
-					
-			} else {
+				}
 			}
-		}
 		}
 	}
 
@@ -239,6 +244,36 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 
 	@Override
 	public void randomSolved(RANDOM_SOLVERS random) {
+	}
+	
+	public void checkStuck() {
+		if (Player.getPosition().getPlane() > 0) {
+			// we are upstairs
+			General.println("We are upstairs - unstucking");
+			RSObject[] stairs = Utilities.findNearest(10, TOWER_LADDER_FROM_UPSTAIRS_MODEL_POINT_COUNT);
+			if (stairs != null && stairs.length > 0) {
+				if (!stairs[0].isOnScreen())
+					Camera.turnToTile(stairs[0]);
+				while (stairs[0].isOnScreen() && Player.getPosition().getPlane() > 0) {
+					if (stairs[0].click("Climb-down"));
+						General.sleep(250,300);
+				}
+			}
+		}
+		
+		if (Player.getPosition().distanceTo(POS_DOWNSTAIRS_TOWER) < 15 && !isDoingRandom) {
+			// we are trapped at the bottom of le tower.
+			General.println("We are downstairs - unstucking");
+			RSObject[] stairs = Utilities.findNearest(10, TOWER_LADDER_FROM_DOWNSTAIRS_MODEL_POINT_COUNT);
+			if (stairs != null && stairs.length > 0) {
+				if (!stairs[0].isOnScreen())
+					Camera.turnToTile(stairs[0]);
+				while (stairs[0].isOnScreen() && Player.getPosition().distanceTo(POS_DOWNSTAIRS_TOWER) < 15) {
+					if (stairs[0].click("Climb-up"));
+						General.sleep(250,300);
+				}
+			}
+		}
 	}
 
 	private State getState() {
@@ -251,7 +286,7 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 			return State.GO_TO_BANK;
 		}
 		
-		if (Player.getPosition().distanceTo(POS_DRUID_TOWER_CENTER) <= 3 && !Player.getPosition().equals(POS_OUTSIDE_DRUID_TOWER_DOOR)) {
+		if (Player.getPosition().distanceTo(POS_DRUID_TOWER_CENTER) < 3 && !Player.getPosition().equals(POS_OUTSIDE_DRUID_TOWER_DOOR)) {
 			// We are at the druids (in the tower).
 			return State.PROCESS_DRUIDS;
 		}
@@ -479,8 +514,7 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 	}
 
 	public static void goToDruids() {
-		if (!(Player.getPosition().distanceTo(POS_DRUID_TOWER_CENTER) <= 3)) {
-			
+		if (!(Player.getPosition().distanceTo(POS_DRUID_TOWER_CENTER) < 3) || Player.getPosition().equals(POS_OUTSIDE_DRUID_TOWER_DOOR)) {
 			// If the script gets started (or a dc, etc) with an empty inventory on the west side of the river we would get stuck.
 			if (Player.getPosition().distanceTo(POS_LOG_WEST) > Player.getPosition().distanceTo(POS_LOG_EAST)) {
 				statusText = "Going to log..";
