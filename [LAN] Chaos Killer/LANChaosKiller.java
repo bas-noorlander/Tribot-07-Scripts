@@ -47,7 +47,6 @@ import org.tribot.api2007.GameTab;
 import org.tribot.api2007.GroundItems;
 import org.tribot.api2007.Inventory;
 import org.tribot.api2007.NPCs;
-import org.tribot.api2007.Objects;
 import org.tribot.api2007.Options;
 import org.tribot.api2007.PathFinding;
 import org.tribot.api2007.Player;
@@ -61,6 +60,7 @@ import org.tribot.api2007.types.RSNPC;
 import org.tribot.api2007.types.RSObject;
 import org.tribot.api2007.types.RSPlayer;
 import org.tribot.api2007.types.RSTile;
+import org.tribot.script.interfaces.Ending;
 import org.tribot.script.interfaces.MouseActions;
 import org.tribot.script.interfaces.Painting;
 import org.tribot.script.interfaces.RandomEvents;
@@ -113,7 +113,7 @@ enum State {
 }
 
 @ScriptManifest(authors = { "Laniax" }, category = "Combat", name = "[LAN] Chaos Killer", description = "Flawless Ardougne Chaos Druid Killer.")
-public class LANChaosKiller extends Script implements Painting, MouseActions, RandomEvents{
+public class LANChaosKiller extends Script implements Painting, MouseActions, RandomEvents, Ending{
 	// Global defines
 	private static boolean quitting = false;
 	private static String statusText = "Starting..";
@@ -184,6 +184,8 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 				gui.setVisible(true);
 		}});
 		
+		LANAntiBan.startAntiBan();
+		
 		while (waitForGUI)
 			sleep(250);
 		
@@ -192,6 +194,13 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 			getState().run();
 			sleep(General.random(40, 80));
 		}
+		
+		LANAntiBan.stopAntiBan();
+	}
+	
+	@Override
+	public void onEnd() {
+		LANAntiBan.stopAntiBan();
 	}
 
 	@Override
@@ -335,6 +344,7 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 		double decimal = currLevel / (double)(hitpointsLevel);
 		int percent = (int)(decimal * 100);
 		if (percent <= eatBelowPercent && foodCount > 0) {
+			GameTab.open(TABS.INVENTORY);
 			RSItem[] food = Inventory.find(foodID);
 			if (food.length > 0) {
 				statusText = "Eating..";
