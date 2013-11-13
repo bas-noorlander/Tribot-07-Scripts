@@ -21,10 +21,10 @@ import org.tribot.api2007.types.RSNPC;
 import org.tribot.api2007.types.RSObject;
 
 enum EventScale {
-	// Small events happen between 20 and 45 seconds.
+	// Small events happen between 50 and 110 seconds.
 	SMALL_EVENT,
 
-	// Large events happen between 55 and 90 seconds.
+	// Large events happen between 150 and 250 seconds.
 	LARGE_EVENT,
 };
 
@@ -106,7 +106,7 @@ public class LANAntiBan {
 				while (nextSmallTask == null || (nextSmallTask == lastSmallEvent.getEvent() && smallTasks.size() > 1 ))
 					nextSmallTask = smallTasks.get(General.random(0, smallTasks.size() - 1));
 		
-				int schedule = General.random(20, 45);
+				int schedule = General.random(50, 110);
 				executor.schedule(nextSmallTask, schedule, TimeUnit.SECONDS);
 				lastSmallEvent = nextSmallTask;
 				if (getWriteLog())
@@ -131,7 +131,7 @@ public class LANAntiBan {
 				while (nextLargeTask == null || (nextLargeTask == lastLargeEvent.getEvent() && largeTasks.size() > 1 ))
 					nextLargeTask = largeTasks.get(General.random(0, largeTasks.size() - 1));
 	
-				int schedule = General.random(55, 90);
+				int schedule = General.random(150, 250);
 				executor.schedule(nextLargeTask, schedule, TimeUnit.SECONDS);
 				lastLargeEvent = nextLargeTask;
 				if (getWriteLog())
@@ -189,6 +189,8 @@ class SkillCheck implements Runnable {
 			skill.hover();
 			General.sleep(1900,3500);
 		}
+		// Make sure it didnt miss click on a skill guide.
+		Interfaces.closeAll();
 		GameTab.open(oldTab);
 	}
 };

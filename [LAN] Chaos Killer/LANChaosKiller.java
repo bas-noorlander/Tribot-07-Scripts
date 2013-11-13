@@ -23,6 +23,7 @@ import java.net.URL;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Map.Entry;
 
 import javax.imageio.ImageIO;
@@ -54,6 +55,7 @@ import org.tribot.api2007.Skills;
 import org.tribot.api2007.GameTab.TABS;
 import org.tribot.api2007.Skills.SKILLS;
 import org.tribot.api2007.Walking;
+import org.tribot.api2007.WebWalking;
 import org.tribot.api2007.types.RSGroundItem;
 import org.tribot.api2007.types.RSItem;
 import org.tribot.api2007.types.RSNPC;
@@ -67,28 +69,126 @@ import org.tribot.script.interfaces.RandomEvents;
 
 enum ItemIDs {
 	// Herbs
-	GUAM_LEAF(199),
-	MARRENTILL(201),
-	TARROMIN(203),
-	HARRALANDER(205),
-	RANARR(207),
-	IRIT(209),
-	AVANTOE(211),
-	KWUARM(213),
-	CADANTINE(215),
-	DWARF_WEED(217),
-	TORSOL(219),
-	LANTADYME(2485),
+	GUAM_LEAF(199) {
+		@Override
+		public String toString() {
+			return "Guam leaf";
+		}
+	},
+	MARRENTILL(201) {
+		@Override
+		public String toString() {
+			return "Marrentill";
+		}
+	},
+	TARROMIN(203) {
+		@Override
+		public String toString() {
+			return "Tarromin";
+		}
+	},
+	HARRALANDER(205) {
+		@Override
+		public String toString() {
+			return "Harralander";
+		}
+	},
+	RANARR(207) {
+		@Override
+		public String toString() {
+			return "Ranarr";
+		}
+	},
+	IRIT(209) {
+		@Override
+		public String toString() {
+			return "Irit";
+		}
+	},
+	AVANTOE(211) {
+		@Override
+		public String toString() {
+			return "Avantoe";
+		}
+	},
+	KWUARM(213) {
+		@Override
+		public String toString() {
+			return "Kwuarm";
+		}
+	},
+	CADANTINE(215) {
+		@Override
+		public String toString() {
+			return "Cadantine";
+		}
+	},
+	DWARF_WEED(217) {
+		@Override
+		public String toString() {
+			return "Dwarf weed";
+		}
+	},
+	TORSOL(219) {
+		@Override
+		public String toString() {
+			return "Torsol";
+		}
+	},
+	LANTADYME(2485) {
+		@Override
+		public String toString() {
+			return "Lantadyme";
+		}
+	},
 	
 	// Misc
-	LAW_RUNE(563),
-	NATURE_RUNE(561),
-	RUNE_JAVELIN(830),
-	MITHRIL_BOLTS(9142);
-			
+	LAW_RUNE(563) {
+		@Override
+		public String toString() {
+			return "Law rune";
+		}
+	},
+	NATURE_RUNE(561) {
+		@Override
+		public String toString() {
+			return "Nature rune";
+		}
+	},
+	RUNE_JAVELIN(830) {
+		@Override
+		public String toString() {
+			return "Rune javelin";
+		}
+	},
+	MITHRIL_BOLTS(9142) {
+		@Override
+		public String toString() {
+			return "Mithril bolts";
+		}
+	};
+	
 	private final int id;
+	private int lootAmount;
 	ItemIDs(int id) { this.id = id; }
-    public int getValue() { return id; }
+    public int getID() { return id; }
+    public int getAmountLooted() { return lootAmount; }
+    public void setAmountLooted() { lootAmount++; }
+    public void setAmountLooted(int i) { lootAmount = i; }
+    
+    private static Map<Integer, ItemIDs> map = new HashMap<Integer, ItemIDs>();
+    
+    public abstract String toString();
+    
+    static {
+        for (ItemIDs id : ItemIDs.values()) {
+            map.put(id.getID(), id);
+        }
+    }
+    
+    public static ItemIDs valueOf(int itemID) {
+        return map.get(itemID);
+    }
 }
 
 enum State {
@@ -255,7 +355,7 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 	public void randomSolved(RANDOM_SOLVERS random) {
 	}
 	
-	public void checkStuck() {
+	public static void checkStuck() {
 		if (Player.getPosition().getPlane() > 0) {
 			// we are upstairs
 			General.println("We are upstairs - unstucking");
@@ -270,13 +370,17 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 			}
 		}
 		
-		if (Player.getPosition().distanceTo(POS_DOWNSTAIRS_TOWER) < 15 && !isDoingRandom) {
+		if (Player.getPosition().distanceTo(POS_DOWNSTAIRS_TOWER) < 25 && !isDoingRandom) {
 			// we are trapped at the bottom of le tower.
 			General.println("We are downstairs - unstucking");
 			RSObject[] stairs = Utilities.findNearest(10, TOWER_LADDER_FROM_DOWNSTAIRS_MODEL_POINT_COUNT);
 			if (stairs != null && stairs.length > 0) {
+				if (Player.getPosition().distanceTo(POS_DOWNSTAIRS_TOWER) > 5)
+					WebWalking.walkTo(POS_DOWNSTAIRS_TOWER);
+				
 				if (!stairs[0].isOnScreen())
 					Camera.turnToTile(stairs[0]);
+				
 				while (stairs[0].isOnScreen() && Player.getPosition().distanceTo(POS_DOWNSTAIRS_TOWER) < 15) {
 					if (stairs[0].click("Climb-up"));
 						General.sleep(250,300);
@@ -378,6 +482,10 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 						
 						// Apparently just 'Take' would causes issues with multiple items on 1 tile.
 						if (item.click("Take "+ item.getDefinition().getName())) {
+							ItemIDs i = ItemIDs.valueOf(item.getID());
+							if (i != null) {
+								i.setAmountLooted();
+							}
 							itemsLooted++;
 							General.sleep(1000,2000);
 						}
@@ -397,6 +505,9 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 				druids = NPCs.sortByDistance(player.getPosition(), druids);
 
 			for (int i = 0; i < druids.length; i++) {
+				
+				checkStuck();
+				
 				if (druidsKilledSinceLastLoot > 5)
 					break;
 
@@ -419,6 +530,7 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 						// while we do that, prepare for next druid
 						if (druids.length > i+1)
 						{
+							checkStuck();
 							if (PathFinding.canReach(druids[i+1], false)) {
 								// We got a new potential druid we can hover over.
 								if (!druids[i+1].isOnScreen()) {
@@ -434,6 +546,7 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 										failsafe++;
 									}
 								}
+								
 
 								if (!druids[i+1].isInCombat() && !Utilities.isUnderAttack()) {
 									// We killed the current druid, and next druid isn't in combat yet.
@@ -597,14 +710,17 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 	// Here be paint stuff.
 
 	private final Color colorSilver = new Color(230, 230, 230);
+	private final Color colorTransparentBG = new Color(0, 0, 0, 153);
 	private final Font font = new Font("Arial", 1, 13);
 	private final Image paint = getImage("https://dl.dropboxusercontent.com/u/21676524/RS/ChaosKiller/Script/paint.png");
 	private final Image paintShow = getImage("https://dl.dropboxusercontent.com/u/21676524/RS/ChaosKiller/Script/painttoggle.png");
 	private final Rectangle paintToggle = new Rectangle(495, 343, 21, 24);
 	private final Rectangle settingsToggle = new Rectangle(203, 455, 109, 22);
+	private final Rectangle lootedToggle = new Rectangle(379, 389, 126, 25);
 	private static final long startTime = System.currentTimeMillis();
 	private static int itemsLooted = 0;
 	private boolean showPaint = true;
+	private boolean showLootInfo = false;
 	
 	private static int startSkillInfo[] = {
 		 	 Skills.getXP(SKILLS.ATTACK),
@@ -625,7 +741,6 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 			g.drawString(Timing.msToString(timeRan), 94, 410);
 			g.drawString(Integer.toString(itemsLooted), 428, 409);
 
-
 			int attackXPGained = (Skills.getXP(SKILLS.ATTACK) - startSkillInfo[0]);
 			String xp = NumberFormat.getNumberInstance().format(Math.round(attackXPGained / hoursRan));
 			g.drawString(attackXPGained + " ("+xp+" XP/h)", 63, 433);
@@ -637,7 +752,27 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 			int defenceXPGained = (Skills.getXP(SKILLS.DEFENCE) - startSkillInfo[2]);
 			xp = NumberFormat.getNumberInstance().format(Math.round(defenceXPGained / hoursRan));
 			g.drawString(defenceXPGained + " ("+xp+" XP/h)", 402, 433);
-
+			
+			if (showLootInfo) {
+				g.setColor(colorTransparentBG);
+				g.fillRoundRect(153, 72, 250, 170, 16, 16);
+				g.setColor(colorSilver);
+				g.drawRoundRect(153, 72, 250, 170, 16, 16);
+				
+				int y = 90;
+				int x = 160;
+				
+				ItemIDs[] vals = ItemIDs.values();
+				for (int i = 0; i < vals.length; i++) {
+					if (i == 8) {
+						y = 90;
+						x = 280;
+					}
+				
+					g.drawString(vals[i].toString()+": "+vals[i].getAmountLooted(), x, y);
+					y += 20;
+				}
+			}
 		} else
 			g.drawImage(paintShow, paintToggle.x, paintToggle.y, null);
 	}
@@ -651,7 +786,7 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 	}
 
 	@Override
-	public void mouseReleased(Point p, int arg1, boolean arg2) {
+	public void mouseReleased(Point p, int button, boolean isBot) {
 		if (paintToggle.contains(p.getLocation()))
 			showPaint = !showPaint;
 		else if (settingsToggle.contains(p.getLocation())) {
@@ -661,15 +796,18 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 	}
 
 	@Override
-	public void mouseClicked(Point arg0, int arg1, boolean arg2) {
-	}
+	public void mouseClicked(Point p, int button, boolean isBot) {}
 
 	@Override
-	public void mouseDragged(Point arg0, int arg1, boolean arg2) {
-	}
+	public void mouseDragged(Point p, int button, boolean isBot) {}
 
 	@Override
-	public void mouseMoved(Point arg0, boolean arg1) {
+	public void mouseMoved(Point p, boolean isBot) {
+		if (!isBot && lootedToggle.contains(p)) {
+			showLootInfo = true;
+		} else {
+			showLootInfo = false;
+		}
 	}
 	
 	@SuppressWarnings("serial")
@@ -808,7 +946,7 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 
 			for (int i = 1; i <= LOOT_IDS.toArray().length; i++) {
 				for (Entry<JCheckBox, ItemIDs> entry : checkBoxes.entrySet()) {
-					if (LOOT_IDS.toArray()[i].equals(entry.getValue().getValue())) {
+					if (LOOT_IDS.toArray()[i].equals(entry.getValue().getID())) {
 						entry.getKey().setSelected(true);
 						break;
 					}
@@ -816,8 +954,8 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 			}
 
 			pack();
-
 			this.setLocationRelativeTo(null);
+			this.toFront();
 		}
 	    
 		protected void backgroundMousePressed(MouseEvent evt) {
@@ -845,7 +983,7 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 
 			for (Entry<JCheckBox, ItemIDs> entry : checkBoxes.entrySet()) {
 				if (entry.getKey().isSelected())
-					LOOT_IDS.add(entry.getValue().getValue());
+					LOOT_IDS.add(entry.getValue().getID());
 			}
 
 			Mouse.setSpeed(mouseSpeed.getValue());
