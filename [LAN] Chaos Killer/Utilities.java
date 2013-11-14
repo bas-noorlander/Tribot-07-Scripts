@@ -1,5 +1,7 @@
 package scripts;
 
+import java.util.Arrays;
+
 import org.tribot.api.types.generic.Filter;
 import org.tribot.api2007.Combat;
 import org.tribot.api2007.NPCs;
@@ -13,8 +15,20 @@ public class Utilities {
 		return Objects.find(DISTANCE, new Filter<RSObject>() {
 			@Override
 			public boolean accept(RSObject obj) {
-				if (obj != null && obj.getModel() != null && obj.getDefinition() != null)
+				if (obj != null && obj.getModel() != null && obj.getDefinition() != null) {
 					return obj.getModel().getPoints().length == MODEL_POINTS;
+				}
+				return false;
+			}});
+	}
+	
+	public static RSObject[] findNearest(final int DISTANCE, final String action) {
+		return Objects.find(DISTANCE, new Filter<RSObject>() {
+			@Override
+			public boolean accept(RSObject obj) {
+				if (obj != null && obj.getModel() != null && obj.getDefinition() != null && obj.getDefinition().getActions() != null) {
+					return Arrays.asList(obj.getDefinition().getActions()).contains(action);
+				}
 				return false;
 			}});
 	}

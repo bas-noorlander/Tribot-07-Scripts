@@ -48,6 +48,7 @@ import org.tribot.api2007.GameTab;
 import org.tribot.api2007.GroundItems;
 import org.tribot.api2007.Inventory;
 import org.tribot.api2007.NPCs;
+import org.tribot.api2007.Objects;
 import org.tribot.api2007.Options;
 import org.tribot.api2007.PathFinding;
 import org.tribot.api2007.Player;
@@ -173,8 +174,9 @@ enum ItemIDs {
 	ItemIDs(int id) { this.id = id; }
     public int getID() { return id; }
     public int getAmountLooted() { return lootAmount; }
-    public void setAmountLooted() { lootAmount++; }
+    public void incredimentUpAmountLooted() { lootAmount++; }
     public void setAmountLooted(int i) { lootAmount = i; }
+    public void incredimentDownAmountLooted() { --lootAmount; }
     
     private static Map<Integer, ItemIDs> map = new HashMap<Integer, ItemIDs>();
     
@@ -212,7 +214,7 @@ enum State {
 	abstract void run();
 }
 
-@ScriptManifest(authors = { "Laniax" }, category = "Combat", name = "[LAN] Chaos Killer", description = "Flawless Ardougne Chaos Druid Killer.")
+@ScriptManifest(authors = { "Laniax" }, category = "Combat", name = "[LAN] Chaos Killer")
 public class LANChaosKiller extends Script implements Painting, MouseActions, RandomEvents, Ending{
 	// Global defines
 	private static boolean quitting = false;
@@ -228,12 +230,12 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 	private static int druidsKilledSinceLastLoot = 0;
 	public static final ArrayList<Integer> LOOT_IDS = new ArrayList<Integer>();
 	
-	private static final int LOG_EAST_MODEL_POINT_COUNT = 54;
-	private static final int LOG_WEST_MODEL_POINT_COUNT = 114;
-	private static final int TOWER_LADDER_TO_DOWNSTAIRS_MODEL_POINT_COUNT = 270;
-	private static final int TOWER_LADDER_FROM_DOWNSTAIRS_MODEL_POINT_COUNT = 288;
-	private static final int TOWER_LADDER_FROM_UPSTAIRS_MODEL_POINT_COUNT = 204;
-	private static final int TOWER_DOOR_MODEL_POINT_COUNT = 168;
+	//private static final int LOG_EAST_MODEL_POINT_COUNT = 54;
+	//private static final int LOG_WEST_MODEL_POINT_COUNT = 114;
+	//private static final int TOWER_LADDER_TO_DOWNSTAIRS_MODEL_POINT_COUNT = 270;
+	//private static final int TOWER_LADDER_FROM_DOWNSTAIRS_MODEL_POINT_COUNT = 288;
+	//private static final int TOWER_LADDER_FROM_UPSTAIRS_MODEL_POINT_COUNT = 204;
+	//private static final int TOWER_DOOR_MODEL_POINT_COUNT = 168;
 	private static final int MAX_FAILSAFE_ATTEMPTS = 20;
 	
 	private static final int MINIMUM_RUN_ENERGY = 25;
@@ -310,7 +312,7 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 				isDoingRandom = true;
 				statusText = "Yikes! a nasty random!";
 				
-				RSObject[] stairs = Utilities.findNearest(6, TOWER_LADDER_TO_DOWNSTAIRS_MODEL_POINT_COUNT);
+				RSObject[] stairs = Utilities.findNearest(6, "Climb-down");
 				if (stairs != null && stairs.length > 0) {
 					if (!stairs[0].isOnScreen())
 						Camera.turnToTile(stairs[0]);
@@ -326,7 +328,7 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 					sleep(8000,9000);
 					
 					// Okay we should be good to go again, lets go up the stairs and continue :)
-					stairs = Utilities.findNearest(10, TOWER_LADDER_FROM_DOWNSTAIRS_MODEL_POINT_COUNT);
+					stairs = Utilities.findNearest(10, "Climb-up");
 					if (stairs != null && stairs.length > 0) {
 						if (!stairs[0].isOnScreen())
 							Camera.turnToTile(stairs[0]);
@@ -352,18 +354,18 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 	}
 
 	@Override
-	public void randomSolved(RANDOM_SOLVERS random) {
-	}
+	public void randomSolved(RANDOM_SOLVERS random) { General.sleep(2500);}
 	
 	public static void checkStuck() {
 		if (Player.getPosition().getPlane() > 0) {
 			// we are upstairs
 			General.println("We are upstairs - unstucking");
-			RSObject[] stairs = Utilities.findNearest(10, TOWER_LADDER_FROM_UPSTAIRS_MODEL_POINT_COUNT);
+			RSObject[] stairs = Utilities.findNearest(10, "Climb-down");
 			if (stairs != null && stairs.length > 0) {
-				if (!stairs[0].isOnScreen())
-					Camera.turnToTile(stairs[0]);
-				while (stairs[0].isOnScreen() && Player.getPosition().getPlane() > 0) {
+				while (Player.getPosition().getPlane() > 0) {
+					if (!stairs[0].isOnScreen())
+						Camera.turnToTile(stairs[0]);
+					
 					if (stairs[0].click("Climb-down"));
 						General.sleep(250,300);
 				}
@@ -373,15 +375,15 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 		if (Player.getPosition().distanceTo(POS_DOWNSTAIRS_TOWER) < 25 && !isDoingRandom) {
 			// we are trapped at the bottom of le tower.
 			General.println("We are downstairs - unstucking");
-			RSObject[] stairs = Utilities.findNearest(10, TOWER_LADDER_FROM_DOWNSTAIRS_MODEL_POINT_COUNT);
+			RSObject[] stairs = Utilities.findNearest(10, "Climb-up");
 			if (stairs != null && stairs.length > 0) {
 				if (Player.getPosition().distanceTo(POS_DOWNSTAIRS_TOWER) > 5)
 					WebWalking.walkTo(POS_DOWNSTAIRS_TOWER);
 				
-				if (!stairs[0].isOnScreen())
-					Camera.turnToTile(stairs[0]);
-				
-				while (stairs[0].isOnScreen() && Player.getPosition().distanceTo(POS_DOWNSTAIRS_TOWER) < 15) {
+				while (Player.getPosition().distanceTo(POS_DOWNSTAIRS_TOWER) < 15) {
+					if (!stairs[0].isOnScreen())
+						Camera.turnToTile(stairs[0]);
+					
 					if (stairs[0].click("Climb-up"));
 						General.sleep(250,300);
 				}
@@ -389,7 +391,7 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 		}
 	}
 
-	private State getState() {
+	private static State getState() {
 		if (Inventory.isFull() || (foodCount > 0 && Inventory.find(foodID).length == 0)) {
 			if (Player.getPosition().distanceTo(POS_BANK_CENTER) <= 2) {
 				// We are at the bank and in need of some banking action.
@@ -484,11 +486,41 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 						if (item.click("Take "+ item.getDefinition().getName())) {
 							ItemIDs i = ItemIDs.valueOf(item.getID());
 							if (i != null) {
-								i.setAmountLooted();
+								i.incredimentUpAmountLooted();
 							}
 							itemsLooted++;
 							General.sleep(1000,2000);
 						}
+					}
+				}
+				
+				// Drop junk we didn't want.
+				ArrayList<Integer> dropItemIds = new ArrayList<Integer>();
+				dropItemIds.add(526); // bones
+				dropItemIds.add(227); // vial of water
+				dropItemIds.add(1971); // kebab
+				dropItemIds.add(1917); // beer
+				dropItemIds.add(558); // mind rune
+				dropItemIds.add(231); // snape grass?
+				dropItemIds.add(1291); // bronze longsword
+				dropItemIds.add(117); // 2 dose strength potion
+				
+				for (ItemIDs itemID : ItemIDs.values()) {
+					if (!LOOT_IDS.contains(itemID.getID()) && Inventory.find(itemID.getID()).length > 0)
+						dropItemIds.add(itemID.getID());
+				}
+				
+				int[] temp = new int[dropItemIds.size()];
+				  for(int i = 0;i < temp.length;i++)
+					  temp[i] = dropItemIds.get(i);
+				
+				int i = Inventory.drop(temp);
+				if (i > 0) {
+					itemsLooted -= i;
+					for (int t : temp){
+						ItemIDs item = ItemIDs.valueOf(t);
+						if (item != null)
+							item.incredimentDownAmountLooted();
 					}
 				}
 			}
@@ -500,7 +532,7 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 
 			statusText = "Killing druids..";
 			
-			RSNPC[] druids = Utilities.findNearest(5, "Chaos druid", true);
+			RSNPC[] druids = Utilities.findNearest(6, "Chaos druid", true);
 			if (druids != null)
 				druids = NPCs.sortByDistance(player.getPosition(), druids);
 
@@ -565,10 +597,13 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 
 	public static void goToBank() {
 		statusText = "Going to bank..";
+		
+		if (getState() != State.GO_TO_BANK)
+			return;
 
 		if (Player.getPosition().distanceTo(POS_DRUID_TOWER_CENTER) <= 3) {
 			// We are in the tower, first open the door.
-			RSObject[] doors = Utilities.findNearest(5, TOWER_DOOR_MODEL_POINT_COUNT);
+			RSObject[] doors = Utilities.findNearest(6, "Open");
 			
 			if (doors.length > 0) {
 				Camera.turnToTile(doors[0]); // always turn the camera, otherwise it has a hard time clicking
@@ -578,6 +613,9 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 					if (DynamicClicking.clickRSObject(doors[0], "Open"))
 						General.sleep(500, 800);
 					failsafe++;
+					
+					if (getState() != State.GO_TO_BANK)
+						return;
 				}
 			}
 		}
@@ -597,29 +635,35 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 				Walking.walkPath(Walking.invertPath(PATH_LOG_TO_TOWER));
 				General.sleep(2000, 2500);
 				failsafe++;
+				
+				if (getState() != State.GO_TO_BANK)
+					return;
 			}
 
 			// Arrived at the log crossing.
 			statusText = "Crossing log..";
 
-			RSObject[] logs = Utilities.findNearest(5, LOG_WEST_MODEL_POINT_COUNT);
-			
-			if (logs.length > 0) {
+			RSObject[] logs = Utilities.findNearest(10, "Walk-across");
+			if (logs != null && logs.length > 0) {
+				logs = Objects.sortByDistance(Player.getPosition(), logs);
 				if (!logs[0].isOnScreen())
 					Camera.turnToTile(logs[0]);
 				
-				failsafe = 0;
-				while (!Player.getPosition().equals(POS_LOG_EAST) && !Player.getPosition().equals(POS_LOG_WALK_FAILED[1]) && failsafe < MAX_FAILSAFE_ATTEMPTS) {
+				while (!Player.getPosition().equals(POS_LOG_EAST) && !Player.getPosition().equals(POS_LOG_WALK_FAILED[1])) {
 					if (!Player.isMoving()) {
 						if (logs[0].click("Walk-across"))
 							General.sleep(4000, 5000);
-						
 					}
 					General.sleep(100, 150);
-					failsafe++;
+
+					if (getState() != State.GO_TO_BANK)
+						return;
 				}
 			}
 		}
+		
+		if (getState() != State.GO_TO_BANK)
+			return;
 		
 		statusText = "Going to bank..";
 
@@ -633,12 +677,19 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 			Walking.walkPath(Walking.invertPath(PATH_BANK_TO_LOG));
 			General.sleep(2000, 2500);
 			failsafe++;
+			
+			if (getState() != State.GO_TO_BANK)
+				return;
 		}
 	}
 
 	public static void goToDruids() {
 		if (!(Player.getPosition().distanceTo(POS_DRUID_TOWER_CENTER) < 3) || Player.getPosition().equals(POS_OUTSIDE_DRUID_TOWER_DOOR)) {
 			// If the script gets started (or a dc, etc) with an empty inventory on the west side of the river we would get stuck.
+			
+			if (getState() != State.GO_TO_DRUIDS)
+				return;
+			
 			if (Player.getPosition().distanceTo(POS_LOG_WEST) > Player.getPosition().distanceTo(POS_LOG_EAST)) {
 				statusText = "Going to log..";
 				
@@ -649,6 +700,9 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 						GameTab.open(TABS.INVENTORY);
 					}
 					
+					if (getState() != State.GO_TO_DRUIDS)
+						return;
+					
 					Walking.walkPath(PATH_BANK_TO_LOG);
 					General.sleep(2000, 2500);
 					failsafe++;
@@ -657,21 +711,23 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 				// Arrived at the log crossing.
 				statusText = "Crossing log..";
 				
-				RSObject[] logs = Utilities.findNearest(5, LOG_EAST_MODEL_POINT_COUNT);
-				
-				if (logs.length > 0) {
+				RSObject[] logs = Utilities.findNearest(10, "Walk-across");
+				if (logs != null && logs.length > 0) {
+					logs = Objects.sortByDistance(Player.getPosition(), logs);
+					
 					if (!logs[0].isOnScreen())
 						Camera.turnToTile(logs[0]);
 					
-					failsafe = 0;
-					while (!Player.getPosition().equals(POS_LOG_WEST) && !Player.getPosition().equals(POS_LOG_WALK_FAILED[0]) && failsafe < MAX_FAILSAFE_ATTEMPTS) {
+					while (!Player.getPosition().equals(POS_LOG_WEST) && !Player.getPosition().equals(POS_LOG_WALK_FAILED[0])) {
 						if (!Player.isMoving()) {
 							if (logs[0].click("Walk-across"))
 								General.sleep(4000, 5000);
 							
 						}
 						General.sleep(100, 150);
-						failsafe++;
+
+						if (getState() != State.GO_TO_DRUIDS)
+							return;
 					}
 					
 				}
@@ -685,15 +741,17 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 					Options.setRunOn(true);
 					GameTab.open(TABS.INVENTORY);
 				}
-				
 				Walking.walkPath(PATH_LOG_TO_TOWER);
 				General.sleep(2000, 2500);
+				
+				if (getState() != State.GO_TO_DRUIDS)
+					return;
 			}
 			
 			// Arrived at the tower, lets picklock the door
 			statusText = "Picklocking door..";
 
-			RSObject[] doors = Utilities.findNearest(5, TOWER_DOOR_MODEL_POINT_COUNT);
+			RSObject[] doors = Utilities.findNearest(5, "Pick-lock");
 				
 			if (doors.length > 0) {
 				Camera.turnToTile(doors[0]); // always turn the camera, otherwise it has a hard time clicking
@@ -702,6 +760,9 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 				while ((!(Player.getPosition().distanceTo(POS_DRUID_TOWER_CENTER) <= 2)) && Player.getPosition().equals(POS_OUTSIDE_DRUID_TOWER_DOOR)) {
 					if (DynamicClicking.clickRSObject(doors[0], "Pick-lock"))
 						General.sleep(500, 800);
+					
+					if (getState() != State.GO_TO_DRUIDS)
+						return;
 				}
 			}
 		}

@@ -35,7 +35,7 @@ enum Events {
 	FRIENDS_LIST    (true, new AntiBanEvent(new FriendsList(),  EventScale.SMALL_EVENT)),
 	EXAMINE_NPC     (true, new AntiBanEvent(new ExamineNPC(),   EventScale.LARGE_EVENT)),
 	EXAMINE_OBJECT  (true, new AntiBanEvent(new ExamineObject(),EventScale.LARGE_EVENT)),
-	SHORT_AFK       (true, new AntiBanEvent(new ShortAFK(),     EventScale.LARGE_EVENT));
+	SHORT_AFK       (false, new AntiBanEvent(new ShortAFK(),    EventScale.LARGE_EVENT));
 	
 	private boolean enable;
 	private final AntiBanEvent event;
