@@ -1,6 +1,7 @@
 package scripts;
 
 import java.util.Arrays;
+import java.util.List;
 
 import org.tribot.api.types.generic.Filter;
 import org.tribot.api2007.Combat;
@@ -27,7 +28,8 @@ public class Utilities {
 			@Override
 			public boolean accept(RSObject obj) {
 				if (obj != null && obj.getModel() != null && obj.getDefinition() != null && obj.getDefinition().getActions() != null) {
-					return Arrays.asList(obj.getDefinition().getActions()).contains(action);
+					List<String> arr = Arrays.asList(obj.getDefinition().getActions());
+					return arr != null && arr.contains(action);
 				}
 				return false;
 			}});
