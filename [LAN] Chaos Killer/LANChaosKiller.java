@@ -292,7 +292,6 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 			sleep(250);
 		
 		while (!quitting) {
-			checkStuck();
 			getState().run();
 			sleep(General.random(40, 80));
 		}
@@ -392,6 +391,8 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 	}
 
 	private static State getState() {
+		checkStuck();
+		
 		if (Inventory.isFull() || (foodCount > 0 && Inventory.find(foodID).length == 0)) {
 			if (Player.getPosition().distanceTo(POS_BANK_CENTER) <= 2) {
 				// We are at the bank and in need of some banking action.
@@ -444,21 +445,23 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 	}
 	
 	private static void eatIfNecessary() {
-		
-		double currLevel = Skills.getCurrentLevel(SKILLS.HITPOINTS);
-		int hitpointsLevel = Skills.getActualLevel(SKILLS.HITPOINTS);
-		double decimal = currLevel / (double)(hitpointsLevel);
-		int percent = (int)(decimal * 100);
-		if (percent <= eatBelowPercent && foodCount > 0) {
-			GameTab.open(TABS.INVENTORY);
-			RSItem[] food = Inventory.find(foodID);
-			if (food.length > 0) {
-				statusText = "Eating..";
+		if (foodCount > 0) {
+			double currLevel = Skills.getCurrentLevel(SKILLS.HITPOINTS);
+			int hitpointsLevel = Skills.getActualLevel(SKILLS.HITPOINTS);
+			double decimal = currLevel / (double)(hitpointsLevel);
+			int percent = (int)(decimal * 100);
+			
+			if (percent <= eatBelowPercent) {
+				GameTab.open(TABS.INVENTORY);
+				RSItem[] food = Inventory.find(foodID);
 				if (food.length > 0) {
-					food[0].click("Eat");
-					
-					// recursion call for if we lose a lot of health fast.
-					eatIfNecessary();
+					statusText = "Eating..";
+					if (food.length > 0) {
+						food[0].click("Eat");
+						
+						// recursion call for if we lose a lot of health fast.
+						eatIfNecessary();
+					}
 				}
 			}
 		}
@@ -466,6 +469,7 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 
 	public static void doProcessDruids() {
 		eatIfNecessary();
+		checkStuck();
 		
 		if (!Utilities.isUnderAttack()) {
 			if (LOOT_IDS != null) {
@@ -555,6 +559,8 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 							General.sleep(250, 300);
 						
 						failsafe++;
+						
+						checkStuck();
 					}
 					
 					if (druids[i].isInteractingWithMe()) {
@@ -575,6 +581,8 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 									if (!druids[i+1].isInCombat()) {
 										if (druids[i+1].hover())
 											General.sleep(200, 300);
+										
+										checkStuck();
 										failsafe++;
 									}
 								}
@@ -621,45 +629,34 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 		}
 		
 		// If the script gets started (or a dc, etc) with a full inventory on the east side of the river we get stuck.
-		if (Player.getPosition().distanceTo(POS_LOG_WEST) < Player.getPosition().distanceTo(POS_LOG_EAST)) {
-			
-			statusText = "Going to log..";
-			
-			int failsafe = 0;
-			while (!Player.getPosition().equals(POS_LOG_WEST) && failsafe < MAX_FAILSAFE_ATTEMPTS) {
-				if (Game.getRunEnergy()> MINIMUM_RUN_ENERGY && !Game.isRunOn()) {
-					Options.setRunOn(true);
-					GameTab.open(TABS.INVENTORY);
-				}
-				
-				Walking.walkPath(Walking.invertPath(PATH_LOG_TO_TOWER));
-				General.sleep(2000, 2500);
-				failsafe++;
-				
-				if (getState() != State.GO_TO_BANK)
-					return;
+		statusText = "Going to log..";
+		
+		while (Player.getPosition().distanceTo(POS_LOG_WEST) < Player.getPosition().distanceTo(POS_LOG_EAST)) {
+			if (Game.getRunEnergy()> MINIMUM_RUN_ENERGY && !Game.isRunOn()) {
+				Options.setRunOn(true);
+				GameTab.open(TABS.INVENTORY);
 			}
+			
+			Walking.walkPath(Walking.invertPath(PATH_LOG_TO_TOWER));
 
+			if (getState() != State.GO_TO_BANK)
+				return;
+			
 			// Arrived at the log crossing.
 			statusText = "Crossing log..";
 
-			RSObject[] logs = Utilities.findNearest(10, "Walk-across");
+			RSObject[] logs = Utilities.findNearest(3, "Walk-across");
 			if (logs != null && logs.length > 0) {
 				logs = Objects.sortByDistance(Player.getPosition(), logs);
 				if (!logs[0].isOnScreen())
 					Camera.turnToTile(logs[0]);
-				
-				while (!Player.getPosition().equals(POS_LOG_EAST) && !Player.getPosition().equals(POS_LOG_WALK_FAILED[1])) {
-					if (!Player.isMoving()) {
-						if (logs[0].click("Walk-across"))
-							General.sleep(4000, 5000);
-					}
-					General.sleep(100, 150);
+
+					if (logs[0].click("Walk-across"))
+						General.sleep(5000, 7000);
 
 					if (getState() != State.GO_TO_BANK)
 						return;
 				}
-			}
 		}
 		
 		if (getState() != State.GO_TO_BANK)
@@ -685,16 +682,15 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 
 	public static void goToDruids() {
 		if (!(Player.getPosition().distanceTo(POS_DRUID_TOWER_CENTER) < 3) || Player.getPosition().equals(POS_OUTSIDE_DRUID_TOWER_DOOR)) {
-			// If the script gets started (or a dc, etc) with an empty inventory on the west side of the river we would get stuck.
 			
+			// If the script gets started (or a dc, etc) with an empty inventory on the west side of the river we would get stuck.
 			if (getState() != State.GO_TO_DRUIDS)
 				return;
-			
-			if (Player.getPosition().distanceTo(POS_LOG_WEST) > Player.getPosition().distanceTo(POS_LOG_EAST)) {
-				statusText = "Going to log..";
 				
-				int failsafe = 0;
-				while (!Player.getPosition().equals(POS_LOG_EAST) && failsafe < MAX_FAILSAFE_ATTEMPTS) {
+				while (Player.getPosition().distanceTo(POS_LOG_WEST) > Player.getPosition().distanceTo(POS_LOG_EAST)) {
+					
+					statusText = "Going to log..";
+					
 					if (Game.getRunEnergy()> MINIMUM_RUN_ENERGY && !Game.isRunOn()) {
 						Options.setRunOn(true);
 						GameTab.open(TABS.INVENTORY);
@@ -704,39 +700,30 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 						return;
 					
 					Walking.walkPath(PATH_BANK_TO_LOG);
-					General.sleep(2000, 2500);
-					failsafe++;
-				}
 				
 				// Arrived at the log crossing.
 				statusText = "Crossing log..";
 				
-				RSObject[] logs = Utilities.findNearest(10, "Walk-across");
+				RSObject[] logs = Utilities.findNearest(3, "Walk-across");
 				if (logs != null && logs.length > 0) {
 					logs = Objects.sortByDistance(Player.getPosition(), logs);
 					
 					if (!logs[0].isOnScreen())
 						Camera.turnToTile(logs[0]);
 					
-					while (!Player.getPosition().equals(POS_LOG_WEST) && !Player.getPosition().equals(POS_LOG_WALK_FAILED[0])) {
-						if (!Player.isMoving()) {
-							if (logs[0].click("Walk-across"))
-								General.sleep(4000, 5000);
-							
-						}
-						General.sleep(100, 150);
+						if (logs[0].click("Walk-across"))
+								General.sleep(5000, 7000);
 
 						if (getState() != State.GO_TO_DRUIDS)
 							return;
 					}
-					
 				}
 			}
-			
-			statusText = "Going to tower..";
-
-			int failsafe = 0;
-			while (!Player.getPosition().equals(POS_OUTSIDE_DRUID_TOWER_DOOR) && failsafe < MAX_FAILSAFE_ATTEMPTS) {
+		
+			while (!Player.getPosition().equals(POS_OUTSIDE_DRUID_TOWER_DOOR)) {
+				
+				statusText = "Going to tower..";
+				
 				if (Game.getRunEnergy()> MINIMUM_RUN_ENERGY && !Game.isRunOn()) {
 					Options.setRunOn(true);
 					GameTab.open(TABS.INVENTORY);
@@ -766,7 +753,6 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 				}
 			}
 		}
-	}
 
 	// Here be paint stuff.
 
