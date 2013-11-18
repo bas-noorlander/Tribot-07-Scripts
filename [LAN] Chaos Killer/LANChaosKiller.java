@@ -230,14 +230,7 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 	private static int druidsKilledSinceLastLoot = 0;
 	public static final ArrayList<Integer> LOOT_IDS = new ArrayList<Integer>();
 	
-	//private static final int LOG_EAST_MODEL_POINT_COUNT = 54;
-	//private static final int LOG_WEST_MODEL_POINT_COUNT = 114;
-	//private static final int TOWER_LADDER_TO_DOWNSTAIRS_MODEL_POINT_COUNT = 270;
-	//private static final int TOWER_LADDER_FROM_DOWNSTAIRS_MODEL_POINT_COUNT = 288;
-	//private static final int TOWER_LADDER_FROM_UPSTAIRS_MODEL_POINT_COUNT = 204;
-	//private static final int TOWER_DOOR_MODEL_POINT_COUNT = 168;
 	private static final int MAX_FAILSAFE_ATTEMPTS = 20;
-	
 	private static final int MINIMUM_RUN_ENERGY = 25;
 	
 	private static final RSTile POS_DOWNSTAIRS_TOWER = new RSTile(2563, 9756);
@@ -255,11 +248,6 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 		return gui;
 		
 	}
-
-	private static final RSTile[] POS_LOG_WALK_FAILED = new RSTile[] {
-			new RSTile(2598, 3329), // east (tower side)
-			new RSTile(2604, 3330) // west (bank side)
-	};
 	
 	private final static RSTile[] PATH_BANK_TO_LOG = new RSTile[] {
 			new RSTile(2617, 3332, 0), 
@@ -392,6 +380,7 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 
 	private static State getState() {
 		checkStuck();
+		eatIfNecessary();
 		
 		if (Inventory.isFull() || (foodCount > 0 && Inventory.find(foodID).length == 0)) {
 			if (Player.getPosition().distanceTo(POS_BANK_CENTER) <= 2) {
@@ -451,7 +440,7 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 			double decimal = currLevel / (double)(hitpointsLevel);
 			int percent = (int)(decimal * 100);
 			
-			if (percent <= eatBelowPercent) {
+			if (percent <= eatBelowPercent || Inventory.isFull()) {
 				GameTab.open(TABS.INVENTORY);
 				RSItem[] food = Inventory.find(foodID);
 				if (food.length > 0) {
@@ -460,7 +449,8 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 						food[0].click("Eat");
 						
 						// recursion call for if we lose a lot of health fast.
-						eatIfNecessary();
+						if (!Inventory.isFull())
+							eatIfNecessary();
 					}
 				}
 			}
@@ -478,22 +468,27 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 				for (int i=0; i< ids.length; i++)
 					ids[i] = LOOT_IDS.get(i).intValue();
 				
-				RSGroundItem lootItems[] = GroundItems.findNearest(ids);
-				if (lootItems.length > 0) {
-					statusText = "Looting..";
-					druidsKilledSinceLastLoot = 0;
-					for (RSGroundItem item : lootItems) {
-						if (Inventory.isFull())
-							return;
-						
-						// Apparently just 'Take' would causes issues with multiple items on 1 tile.
-						if (item.click("Take "+ item.getDefinition().getName())) {
-							ItemIDs i = ItemIDs.valueOf(item.getID());
-							if (i != null) {
-								i.incredimentUpAmountLooted();
+				for (int y = 0; y <= 1; y++) {
+					// Do the looting twice, so that it might pick up the right item before it drops the bad ones.
+					RSGroundItem lootItems[] = GroundItems.findNearest(ids);
+					if (lootItems.length > 0) {
+						statusText = "Looting..";
+						druidsKilledSinceLastLoot = 0;
+						for (RSGroundItem item : lootItems) {
+							eatIfNecessary(); // will eat to clear out inv space
+							
+							if (Inventory.isFull())
+								return;
+							
+							// Apparently just 'Take' would causes issues with multiple items on 1 tile.
+							if (item.click("Take "+ item.getDefinition().getName())) {
+								ItemIDs i = ItemIDs.valueOf(item.getID());
+								if (i != null) {
+									i.incredimentUpAmountLooted();
+								}
+								itemsLooted++;
+								General.sleep(1000,2000);
 							}
-							itemsLooted++;
-							General.sleep(1000,2000);
 						}
 					}
 				}
@@ -581,10 +576,10 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 									if (!druids[i+1].isInCombat()) {
 										if (druids[i+1].hover())
 											General.sleep(200, 300);
-										
-										checkStuck();
-										failsafe++;
 									}
+									
+									checkStuck();
+									failsafe++;
 								}
 								
 
@@ -637,7 +632,9 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 				GameTab.open(TABS.INVENTORY);
 			}
 			
-			Walking.walkPath(Walking.invertPath(PATH_LOG_TO_TOWER));
+			if (!Walking.walkPath(Walking.invertPath(PATH_LOG_TO_TOWER))) {
+				WebWalking.walkTo(PATH_LOG_TO_TOWER[0]);
+			}
 
 			if (getState() != State.GO_TO_BANK)
 				return;
@@ -670,8 +667,11 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 				Options.setRunOn(true);
 				GameTab.open(TABS.INVENTORY);
 			}
+
+			if (!Walking.walkPath(Walking.invertPath(PATH_BANK_TO_LOG))) {
+				WebWalking.walkTo(PATH_BANK_TO_LOG[0]);
+			}
 			
-			Walking.walkPath(Walking.invertPath(PATH_BANK_TO_LOG));
 			General.sleep(2000, 2500);
 			failsafe++;
 			
@@ -699,7 +699,9 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 					if (getState() != State.GO_TO_DRUIDS)
 						return;
 					
-					Walking.walkPath(PATH_BANK_TO_LOG);
+					if (!Walking.walkPath(PATH_BANK_TO_LOG)) {
+						WebWalking.walkTo(PATH_BANK_TO_LOG[4]);
+					}
 				
 				// Arrived at the log crossing.
 				statusText = "Crossing log..";
@@ -728,7 +730,13 @@ public class LANChaosKiller extends Script implements Painting, MouseActions, Ra
 					Options.setRunOn(true);
 					GameTab.open(TABS.INVENTORY);
 				}
+				
 				Walking.walkPath(PATH_LOG_TO_TOWER);
+				
+				if (!Walking.walkPath(PATH_LOG_TO_TOWER)) {
+					WebWalking.walkTo(PATH_LOG_TO_TOWER[4]);
+				}
+				
 				General.sleep(2000, 2500);
 				
 				if (getState() != State.GO_TO_DRUIDS)
