@@ -84,6 +84,7 @@ public class PaintMgr {
 			
 			drawShadowedText(LANChaosKiller.statusText, fontLarge, 141, 372, g);
 			drawShadowedText(Timing.msToString(timeRan), font, 115, 406, g);
+			drawShadowedText(Integer.toString(LANChaosKiller.druidsKilled), font, 327, 406, g);
 			
 			int i = 0;
 			for (Entry<SKILLS, Integer> entry : startSkillInfo.entrySet()) {

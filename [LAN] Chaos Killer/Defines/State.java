@@ -4,6 +4,7 @@ import org.tribot.api2007.Inventory;
 import org.tribot.api2007.Player;
 
 import scripts.LANChaosKiller;
+import scripts.Managers.CombatMgr;
 
 /**
  * @author Laniax
@@ -35,6 +36,9 @@ public enum State {
 	public abstract void run();
 
 	public static State getState() {
+		
+		if (LANChaosKiller.shouldEat)
+			CombatMgr.doEat();
 
 		if (Inventory.isFull() || (LANChaosKiller.foodCount > 0 && Inventory.find(LANChaosKiller.foodName).length == 0)) {
 

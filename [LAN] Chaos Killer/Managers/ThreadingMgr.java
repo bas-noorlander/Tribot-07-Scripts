@@ -1,15 +1,11 @@
 package scripts.Managers;
 
-import org.tribot.api.Clicking;
 import org.tribot.api.General;
 import org.tribot.api.types.generic.Condition;
 import org.tribot.api2007.Combat;
-import org.tribot.api2007.GameTab;
-import org.tribot.api2007.GameTab.TABS;
 import org.tribot.api2007.Inventory;
 import org.tribot.api2007.PathFinding;
 import org.tribot.api2007.Player;
-import org.tribot.api2007.ext.Filters;
 
 import scripts.LANChaosKiller;
 
@@ -19,7 +15,7 @@ import scripts.LANChaosKiller;
  */
 
 public class ThreadingMgr {
-
+	
 	public static final Thread scriptThread = Thread.currentThread();
 	final static Thread stuckChecker = new Thread(new StuckChecker());
 	final static Thread statsChecker = new Thread(new StatsChecker());
@@ -97,38 +93,19 @@ class StatsChecker implements Runnable {
 			 * Check if we have food and are in need of eating
 			 */
 			if (LANChaosKiller.foodCount > 0) {
-				//	General.println("HP Ratio: "+Combat.getHPRatio()+". Percent to eat below: "+LANChaosKiller.eatBelowPercent);
+
 				if (Combat.getHPRatio() <= LANChaosKiller.eatBelowPercent || Inventory.isFull()) {
-					try {
 
-						General.println("Stopping scriptthread");
-						// To prevent 2 threads battling each other for control. we will pause the script thread while we eat.
-						synchronized(ThreadingMgr.scriptThread) {
-							ThreadingMgr.scriptThread.wait();
-						}
+					LANChaosKiller.shouldEat = true;
 
-						LANChaosKiller.statusText = "Eating food";
-						GameTab.open(TABS.INVENTORY);
-						if (Clicking.click(Inventory.find(Filters.Items.nameEquals(LANChaosKiller.foodName)))) {
-
-							// And resume the script thread.
-							synchronized(ThreadingMgr.scriptThread) {
-								ThreadingMgr.scriptThread.notify();
-							}
-						}
-
-					}
-					catch (InterruptedException e) {
-						e.printStackTrace();
-					}
 				}
 			}
+		}
 
-			try {
-				Thread.sleep(100);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
+		try {
+			Thread.sleep(100);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
 		}
 	}
 }

@@ -4,7 +4,13 @@ import org.tribot.api.Clicking;
 import org.tribot.api.General;
 import org.tribot.api2007.Camera;
 import org.tribot.api2007.Combat;
+import org.tribot.api2007.GameTab;
+import org.tribot.api2007.Inventory;
+import org.tribot.api2007.GameTab.TABS;
+import org.tribot.api2007.ext.Filters;
 import org.tribot.api2007.types.RSNPC;
+
+import scripts.LANChaosKiller;
 
 /**
  * Helper class that manages combat logic.
@@ -21,6 +27,20 @@ public class CombatMgr {
 	 */
 	public static boolean isUnderAttack() {
 		return Combat.getAttackingEntities().length > 0;
+	}
+	
+	/**
+	 * Eats 1 food from the inventory.
+	 * @return true if successfully ate the food.
+	 */
+	public static boolean doEat() {
+		LANChaosKiller.statusText = "Eating food";
+		GameTab.open(TABS.INVENTORY);
+		if (Clicking.click(Inventory.find(Filters.Items.nameEquals(LANChaosKiller.foodName)))) {
+			LANChaosKiller.shouldEat = false;
+			return true;
+		}
+		return false;
 	}
 
 	/**
@@ -48,8 +68,9 @@ public class CombatMgr {
 			// as long as we both are alive and not in combat, we try to attack him.
 			for (int it = 0; it < 20; it++) {
 				if (!attackNPC.isInCombat()  && !CombatMgr.isUnderAttack() && attackNPC.isValid()) {
-					Clicking.click("Attack", attackNPC);
-					General.sleep(250,320);
+					if (Clicking.click("Attack", attackNPC)) {
+						General.sleep(250,320);
+					}
 				} else break;
 			}
 
@@ -57,6 +78,8 @@ public class CombatMgr {
 			if (attackNPC.isInCombat() && !CombatMgr.isUnderAttack()) {
 				continue;
 			}
+			
+			LANChaosKiller.druidsKilled++;
 			
 			if (!hoverAndAttackNextTarget || !AntibanMgr.mayHoverNextObject())
 				return attackNPC;
@@ -88,8 +111,10 @@ public class CombatMgr {
 
 				for (int it = 0; it < 20; it++) {
 					if (!hoverNPC.isInCombat() && hoverNPC.isValid() && !CombatMgr.isUnderAttack()) {
-						if (Clicking.click("Attack", hoverNPC))
+						if (Clicking.click("Attack", hoverNPC)) {
+							LANChaosKiller.druidsKilled++;
 							return hoverNPC;
+						}
 					} else break;
 
 					General.sleep(250,320);
