@@ -26,6 +26,7 @@ import javax.swing.JTextField;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.WindowConstants;
 
+import org.tribot.api.General;
 import org.tribot.api.input.Mouse;
 
 import scripts.Defines.ItemIDs;
@@ -33,21 +34,26 @@ import scripts.Defines.ItemIDs;
 @SuppressWarnings("serial")
 public class GUI extends JFrame {
 
-	private static Preferences preferences = Preferences.userRoot().node("LanChaosKiller_UserSettings");
+	private static Preferences preferences = null;
 	private HashMap<JCheckBox, ItemIDs> checkBoxes = new HashMap<JCheckBox, ItemIDs>();
 	Point start_drag, start_loc;
 
 	public GUI() {
-
+		
 		// Load GUI settings
-		Mouse.setSpeed(preferences.getInt("mouseSpeed", 70));
-		LANChaosKiller.foodCount = preferences.getInt("foodCount", 1);
-		LANChaosKiller.foodName = preferences.get("foodName", "Lobster");
-		LANChaosKiller.eatBelowPercent = preferences.getInt("eatBelowPercent", 50);
-
-		for (ItemIDs i : ItemIDs.values()) {
-			if (preferences.getBoolean(i.name(), false))
-				LANChaosKiller.lootIDs.add(i.getID());
+		try {
+			preferences = Preferences.userRoot().node("LanChaosKiller_UserSettings");
+			Mouse.setSpeed(preferences.getInt("mouseSpeed", 70));
+			LANChaosKiller.foodCount = preferences.getInt("foodCount", 1);
+			LANChaosKiller.foodName = preferences.get("foodName", "Lobster");
+			LANChaosKiller.eatBelowPercent = preferences.getInt("eatBelowPercent", 50);
+			
+			for (ItemIDs i : ItemIDs.values()) {
+				if (preferences.getBoolean(i.name(), false))
+					LANChaosKiller.lootIDs.add(i.getID());
+			}
+		} catch (Exception e) {
+			General.println("Error while loading settings from last time. This is caused by some VPS's.");
 		}
 
 		checkBoxes.put(lootGuam, ItemIDs.GUAM_LEAF);
@@ -199,13 +205,18 @@ public class GUI extends JFrame {
 		this.setVisible(false);
 
 		// Save these settings.
-		preferences.putInt("mouseSpeed", mouseSpeed.getValue());
-		preferences.put("foodName", LANChaosKiller.foodName);
-		preferences.putInt("foodCount", LANChaosKiller.foodCount);
-		preferences.putInt("eatBelowPercent", LANChaosKiller.eatBelowPercent);
-
-		for (ItemIDs i : ItemIDs.values()) {
-			preferences.putBoolean(i.name(), LANChaosKiller.lootIDs.contains(i.getID()));
+		try {
+			preferences = Preferences.userRoot().node("LanChaosKiller_UserSettings");
+			preferences.putInt("mouseSpeed", mouseSpeed.getValue());
+			preferences.put("foodName", LANChaosKiller.foodName);
+			preferences.putInt("foodCount", LANChaosKiller.foodCount);
+			preferences.putInt("eatBelowPercent", LANChaosKiller.eatBelowPercent);
+			
+			for (ItemIDs i : ItemIDs.values()) {
+				preferences.putBoolean(i.name(), LANChaosKiller.lootIDs.contains(i.getID()));
+			}
+		} catch (Exception e) {
+			General.println("Error while saving these settings for next time. This is caused by some VPS's.");
 		}
 	}
 
