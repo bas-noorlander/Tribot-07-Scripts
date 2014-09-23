@@ -1,6 +1,8 @@
 package scripts;
 
 import java.awt.Graphics;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 
 import org.tribot.api.Clicking;
@@ -26,7 +28,9 @@ import org.tribot.api2007.types.RSNPC;
 import org.tribot.api2007.types.RSTile;
 import org.tribot.script.Script;
 import org.tribot.script.ScriptManifest;
+import org.tribot.script.interfaces.EventBlockingOverride;
 import org.tribot.script.interfaces.Painting;
+import org.tribot.script.interfaces.EventBlockingOverride.OVERRIDE_RETURN;
 
 import scripts.Definitions.ItemIDs;
 import scripts.Definitions.Location;
@@ -40,7 +44,7 @@ import scripts.Mgrs.PaintMgr;
  * @author Laniax
  */
 @ScriptManifest(authors = { "Laniax" }, category = "Ranged", name = "[LAN] OgreRanger")
-public class LANOgreRanger extends Script implements Painting{
+public class LANOgreRanger extends Script implements Painting, EventBlockingOverride{
 	
 	public static boolean isQuitting = false;
 	
@@ -341,5 +345,29 @@ public class LANOgreRanger extends Script implements Painting{
 	public void onPaint(Graphics g) {
 		PaintMgr.onPaint(g);
 	}
+
+	@Override
+	public OVERRIDE_RETURN overrideMouseEvent(MouseEvent e) {
+		if (e.getID() == MouseEvent.MOUSE_CLICKED) {
+			if (PaintMgr.paintToggle.contains(e.getPoint())) {
+				
+				PaintMgr.showPaint = !PaintMgr.showPaint;
+				
+				e.consume();
+				return OVERRIDE_RETURN.DISMISS;
+			} else if (PaintMgr.settingsToggle.contains(e.getPoint())) {
+
+				//LANOgreRanger.getGUI().setVisible(!LANOgreRanger.getGUI().isVisible());
+				
+				e.consume();
+				return OVERRIDE_RETURN.DISMISS;
+			}
+		}
+		
+		return OVERRIDE_RETURN.PROCESS;
+	}
+
+	// unused overrides
+	public OVERRIDE_RETURN overrideKeyEvent(KeyEvent e) {return OVERRIDE_RETURN.SEND;}
 
 }

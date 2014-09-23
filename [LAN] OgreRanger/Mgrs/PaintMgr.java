@@ -5,6 +5,7 @@ import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Image;
+import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.io.IOException;
 import java.net.URL;
@@ -28,8 +29,14 @@ import scripts.LANOgreRanger;
 public class PaintMgr {
 
 	private final static Image paintImage = getImage("https://dl.dropboxusercontent.com/u/21676524/RS/OrgeRanger/paint.png");
-	private final static Font font = new Font("Arial", 1, 12);
+	private final static Image hidePaintImage = getImage("https://dl.dropboxusercontent.com/u/21676524/RS/OrgeRanger/hidepaint.png");
+	private final static Image showPaintImage = getImage("https://dl.dropboxusercontent.com/u/21676524/RS/OrgeRanger/showpaint.png");
+	private final static Image showSettingsImage = getImage("https://dl.dropboxusercontent.com/u/21676524/RS/OrgeRanger/settings.png");
 	
+	public final static Rectangle paintToggle = new Rectangle(454, 314, 63, 24);
+	public final static Rectangle settingsToggle = new Rectangle(454, 290, 63, 24);
+	
+	private final static Font font = new Font("Arial", 1, 12);
 	public static final long startTime = System.currentTimeMillis();
 	public static boolean showPaint = true;
 	public static boolean showArrowTracker = false;
@@ -45,6 +52,7 @@ public class PaintMgr {
 			Graphics2D g = (Graphics2D)g1;
 			
 			g.drawImage(paintImage, -4, 245, null);
+			g.drawImage(hidePaintImage, paintToggle.x, paintToggle.y, null);
 			
 			g.setColor(Color.WHITE);
 			g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -65,6 +73,13 @@ public class PaintMgr {
 			g.drawString("Runtime: "+Timing.msToString(timeRan), 260, 290);
 			g.drawString("Status: "+LANOgreRanger.statusText, 90, 290);
 		}
+		else if (!showPaint) {
+			g1.drawImage(showPaintImage, paintToggle.x, paintToggle.y, null);
+			
+		}
+		
+		// settings button always gets drawn, even if paint is hidden.
+		g1.drawImage(showSettingsImage, settingsToggle.x, settingsToggle.y, null);
 	}
 	
 	public static Image getImage(String url) {
