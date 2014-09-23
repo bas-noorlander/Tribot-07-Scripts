@@ -153,46 +153,43 @@ public class LANOgreRanger extends Script implements Painting, EventBlockingOver
 				public boolean active() {
 					return Inventory.getAll().length == 0;
 				}}, General.random(7000, 9000));
-		
 			
 			RSItem arrowsEquiped = Equipment.getItem(SLOTS.ARROW);
 			if (arrowsEquiped == null || arrowsEquiped.getStack() < 100) {
 				
 				General.println("We are low on arrows! Checking bank for more");
 				RSItem[] arrows = Banking.find(arrowId);
-				if (arrows.length > 0) {
-					if (arrows[0].getStack() > 50) {
-						General.println("There are some more arrows in bank =)");
-						Banking.withdrawItem(arrows[0], General.random(2000, 4000));
-						
-						Timing.waitCondition(new Condition() {
-							public boolean active() {
-								return Inventory.getCount(arrowId) >= 50;
-							}}, General.random(7000, 9000));
-					}
-					else {
-						General.println("There are less than 50 arrows in your bank =( Safely logging out here in the bank");
-						
-						if (Banking.close()) {
-							if (Login.logout()) {
-								isQuitting = true;
-								General.println("Logged out. You gained "+PaintMgr.xpGained+" ranged xp over "+Timing.msToString(System.currentTimeMillis() - PaintMgr.startTime)+" hours.");
-							}
+				
+				if (arrows.length == 0 || arrows[0].getStack() < 50) {
+					General.println("There are less than 50 arrows (or none at all) in your bank =( Safely logging out here..");
+					
+					if (Banking.close()) {
+						if (Login.logout()) {
+							isQuitting = true;
+							General.println("Logged out. You gained "+PaintMgr.xpGained+" ranged xp over "+Timing.msToString(System.currentTimeMillis() - PaintMgr.startTime)+" hours.");
+							return;
 						}
 					}
 				}
-			}
-
-			if (foodCount > 0) {
-				Banking.withdraw(foodCount, foodName);
-
+		
+				General.println("There are some more arrows in bank =)");
+				Banking.withdrawItem(arrows[0], General.random(2000, 4000));
+						
 				Timing.waitCondition(new Condition() {
 					public boolean active() {
-						return Inventory.getCount(new String[]{foodName}) >= foodCount;
+						return Inventory.getCount(arrowId) >= 50;
 					}}, General.random(7000, 9000));
 			}
+			
+		if (foodCount > 0) {
+			Banking.withdraw(foodCount, foodName);
 
-			Banking.close();
+			Timing.waitCondition(new Condition() {
+				public boolean active() {
+					return Inventory.getCount(new String[]{foodName}) >= foodCount;
+				}}, General.random(7000, 9000));
+		}
+		Banking.close();
 		}
 	}
 	
