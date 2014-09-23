@@ -150,7 +150,7 @@ public class LANOgreRanger extends Script implements Painting{
 						
 						Timing.waitCondition(new Condition() {
 							public boolean active() {
-								return Inventory.getCount(new String[]{foodName}) >= foodCount;
+								return Inventory.getCount(arrowId) >= 50;
 							}}, General.random(7000, 9000));
 					}
 					else {
