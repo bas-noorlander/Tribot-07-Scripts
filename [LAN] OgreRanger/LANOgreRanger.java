@@ -1,5 +1,6 @@
 package scripts;
 
+import java.awt.EventQueue;
 import java.awt.Graphics;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
@@ -30,8 +31,8 @@ import org.tribot.script.Script;
 import org.tribot.script.ScriptManifest;
 import org.tribot.script.interfaces.EventBlockingOverride;
 import org.tribot.script.interfaces.Painting;
-import org.tribot.script.interfaces.EventBlockingOverride.OVERRIDE_RETURN;
 
+import scripts.Definitions.GUI;
 import scripts.Definitions.ItemIDs;
 import scripts.Definitions.Location;
 import scripts.Definitions.State;
@@ -47,9 +48,15 @@ import scripts.Mgrs.PaintMgr;
 public class LANOgreRanger extends Script implements Painting, EventBlockingOverride{
 	
 	public static boolean isQuitting = false;
+	public static boolean waitForGUI = true;
 	
+	public static boolean pickUpArrows = false;
 	public static int arrowId = 0;
+	public static boolean pickUpArrowsAlways = false;
 	public static int pickUpArrowCount = 10;
+	public static boolean pickUpArrowsOnlyAboveAmount = false;
+	
+	public static boolean useSpec = false;
 	public static int foodCount = 0;
 	public static String foodName = "Lobster";
 	public static String statusText = "Starting up..";
@@ -61,6 +68,13 @@ public class LANOgreRanger extends Script implements Painting, EventBlockingOver
 	
 	private static boolean wasIdle = false;
 	private static long idleSince;
+	
+	private static GUI gui;
+
+	// singleton
+	public static GUI getGUI() {
+		return gui = gui == null ? new GUI() : gui;
+	}
 
 	@Override
 	public void run() {
@@ -69,23 +83,21 @@ public class LANOgreRanger extends Script implements Painting, EventBlockingOver
 		while (Login.getLoginState() != Login.STATE.INGAME)
 			General.sleep(250);
 		
+		PaintMgr.showPaint = true;
+		
 		PaintMgr.startRangeXP = Skills.getXP(SKILLS.RANGED);
 
 		if (Combat.isAutoRetaliateOn())
 			Combat.setAutoRetaliate(false);
-
-		// This script supports multiple locations, we set the one to use here.//todo: set by GUI
-		scriptLocation = Location.CASTLE_WARS;
 		
-		// gui show
-		// scriptLocation = location chosen
-		// arrowId = what arrows we usin'
-		// if checked loot own arrows
-		// pickUpArrowCount = pick up arrows if stack above X number
-		// food count 0 == no eat
-		// food name
-		// use spec/?
-		// persist these settings
+		EventQueue.invokeLater(new Runnable() {
+			@Override
+			public void run() {
+				getGUI().setVisible(true);
+			}});
+
+		while (waitForGUI)
+			sleep(250);
 		
 		switch (scriptLocation) {
 		
@@ -143,7 +155,8 @@ public class LANOgreRanger extends Script implements Painting, EventBlockingOver
 				}}, General.random(7000, 9000));
 		
 			
-			if (Equipment.getItem(SLOTS.ARROW).getStack() < 100) {
+			RSItem arrowsEquiped = Equipment.getItem(SLOTS.ARROW);
+			if (arrowsEquiped == null || arrowsEquiped.getStack() < 100) {
 				
 				General.println("We are low on arrows! Checking bank for more");
 				RSItem[] arrows = Banking.find(arrowId);
@@ -357,7 +370,7 @@ public class LANOgreRanger extends Script implements Painting, EventBlockingOver
 				return OVERRIDE_RETURN.DISMISS;
 			} else if (PaintMgr.settingsToggle.contains(e.getPoint())) {
 
-				//LANOgreRanger.getGUI().setVisible(!LANOgreRanger.getGUI().isVisible());
+				LANOgreRanger.getGUI().setVisible(!LANOgreRanger.getGUI().isVisible());
 				
 				e.consume();
 				return OVERRIDE_RETURN.DISMISS;

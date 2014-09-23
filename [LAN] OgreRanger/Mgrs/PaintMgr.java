@@ -38,8 +38,7 @@ public class PaintMgr {
 	
 	private final static Font font = new Font("Arial", 1, 12);
 	public static final long startTime = System.currentTimeMillis();
-	public static boolean showPaint = true;
-	public static boolean showArrowTracker = false;
+	public static boolean showPaint = false;
 	public static int startRangeXP = 0;
 	public static int xpGained = 0;
 	

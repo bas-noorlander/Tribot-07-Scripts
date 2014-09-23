@@ -4,6 +4,7 @@ import org.tribot.api2007.Equipment;
 import org.tribot.api2007.Equipment.SLOTS;
 import org.tribot.api2007.Inventory;
 import org.tribot.api2007.Player;
+import org.tribot.api2007.types.RSItem;
 
 import scripts.LANOgreRanger;
 
@@ -39,8 +40,10 @@ public enum State {
 		
 		//if (LANChaosKiller.shouldEat)
 		//	CombatMgr.doEat();
+		
+		RSItem arrows = Equipment.getItem(SLOTS.ARROW);
 
-		if (((Inventory.isFull() || (LANOgreRanger.foodCount > 0) && Inventory.find(LANOgreRanger.foodName).length == 0)) || Equipment.getItem(SLOTS.ARROW).getStack() < 50) {
+		if (((Inventory.isFull() || (LANOgreRanger.foodCount > 0) && Inventory.find(LANOgreRanger.foodName).length == 0)) || (arrows != null && arrows.getStack() < 50)) {
 
 			if (LANOgreRanger.AREA_BANK.contains(Player.getPosition())) {
 				// We are at the bank and in need of some banking action.

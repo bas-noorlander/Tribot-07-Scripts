@@ -11,7 +11,7 @@ import java.util.Map;
  * 
  */
 public enum ItemIDs {
-	// Herbs
+
 	SEED_RANARR(5295) {
 		@Override
 		public String toString() {
