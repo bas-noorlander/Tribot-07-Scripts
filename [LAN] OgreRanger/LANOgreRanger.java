@@ -360,6 +360,9 @@ public class LANOgreRanger extends Script implements Painting, EventBlockingOver
 			}
 		}
 		
+		// Run back to safespot before we equip anything!
+		goToOgres();
+		
 		// Equip any arrows we looted
 		RSItem[] arrows = Inventory.find(arrowId);
 		if (arrows.length > 0) {
@@ -369,7 +372,7 @@ public class LANOgreRanger extends Script implements Painting, EventBlockingOver
 			Timing.waitCondition(new Condition() {
 				public boolean active() {
 					return Inventory.find(arrowId).length == 0;
-				}}, General.random(1000, 2000));
+				}}, General.random(5000, 7000));
 		}
 	}
 	
