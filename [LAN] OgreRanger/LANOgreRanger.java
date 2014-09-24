@@ -155,16 +155,16 @@ public class LANOgreRanger extends Script implements Painting, EventBlockingOver
 				public boolean active() {
 					return Inventory.getAll().length == 0;
 				}}, General.random(7000, 9000));
-			
+
 			RSItem arrowsEquiped = Equipment.getItem(SLOTS.ARROW);
 			if (arrowsEquiped == null || arrowsEquiped.getStack() < 100) {
-				
+
 				General.println("We are low on arrows! Checking bank for more");
 				RSItem[] arrows = Banking.find(arrowId);
-				
+
 				if (arrows.length == 0 || arrows[0].getStack() < 50) {
 					General.println("There are less than 50 arrows (or none at all) in your bank =( Safely logging out here..");
-					
+
 					if (Banking.close()) {
 						if (Login.logout()) {
 							isQuitting = true;
@@ -173,25 +173,38 @@ public class LANOgreRanger extends Script implements Painting, EventBlockingOver
 						}
 					}
 				}
-		
+
 				General.println("There are some more arrows in bank =)");
 				Banking.withdrawItem(arrows[0], General.random(2000, 4000));
-						
+
 				Timing.waitCondition(new Condition() {
 					public boolean active() {
 						return Inventory.getCount(arrowId) >= 50;
 					}}, General.random(7000, 9000));
 			}
-			
-		if (foodCount > 0) {
-			Banking.withdraw(foodCount, foodName);
 
-			Timing.waitCondition(new Condition() {
-				public boolean active() {
-					return Inventory.getCount(new String[]{foodName}) >= foodCount;
-				}}, General.random(7000, 9000));
-		}
-		Banking.close();
+			if (foodCount > 0) {
+				Banking.withdraw(foodCount, foodName);
+
+				Timing.waitCondition(new Condition() {
+					public boolean active() {
+						return Inventory.getCount(new String[]{foodName}) >= foodCount;
+					}}, General.random(7000, 9000));
+			}
+
+			if (Banking.close()) {
+				// Equip any arrows we took from the bank
+				RSItem[] arrows = Inventory.find(arrowId);
+				if (arrows.length > 0) {
+					
+					Clicking.click(arrows[0]);
+					
+					Timing.waitCondition(new Condition() {
+						public boolean active() {
+							return Inventory.find(arrowId).length == 0;
+						}}, General.random(4000, 7000));
+				}
+			}
 		}
 	}
 	
