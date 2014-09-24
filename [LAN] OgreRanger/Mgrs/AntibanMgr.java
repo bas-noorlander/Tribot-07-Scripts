@@ -79,7 +79,10 @@ public class AntibanMgr {
 
 			for (RSNPC npc : npcs) {
 
-				if (npc.isInCombat() || !npc.isValid() || !npc.isOnScreen())
+				if (npc.isInCombat() || !npc.isValid())
+					continue;
+				
+				if (LANOgreRanger.POS_SAFESPOT.distanceTo(npc) > 7)
 					continue;
 
 				orderedNPCs.add(npc);

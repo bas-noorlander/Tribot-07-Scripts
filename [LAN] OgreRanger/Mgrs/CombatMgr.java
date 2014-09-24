@@ -81,6 +81,9 @@ public class CombatMgr {
 			
 			if (!attackNPC.isOnScreen())
 				Camera.turnToTile(attackNPC);
+			
+			if (!attackNPC.isOnScreen())
+				Camera.setCameraAngle(0);
 
 			// as long as we both are alive and not in combat, we try to attack him.
 			for (int it = 0; it < 20; it++) {
@@ -96,6 +99,19 @@ public class CombatMgr {
 			// we may NEVER attack an NPC if we are NOT in our safezone!
 			if (!Player.getPosition().equals(LANOgreRanger.POS_SAFESPOT)) {
 				LANOgreRanger.goToOgres();
+				// Since we ran back to the safespot AFTER attacking the ogres.
+				// we have to attack our npc again.
+				// not sure on how im going to clean this up.
+				// todo
+				
+				// as long as we both are alive and not in combat, we try to attack him.
+				for (int it = 0; it < 20; it++) {
+					if (!attackNPC.isInCombat()  && !CombatMgr.isUnderAttack() && attackNPC.isValid()) {
+						if (Clicking.click("Attack", attackNPC)) {
+							General.sleep(250,320);
+						}
+					} else break;
+				}
 			}
 
 			// someone stole our npc =(
@@ -111,13 +127,16 @@ public class CombatMgr {
 				final RSNPC hoverNPC = npcs[i+1];
 
 				while (attackNPC.isInteractingWithMe()) {
-					
+
 					eatIfNecessary();
 
-					if (!hoverNPC.isInCombat() && hoverNPC.isValid() && MovementMgr.canReach(hoverNPC)) {
+					if (!hoverNPC.isInCombat() && hoverNPC.isValid()) {
 
 						if (!hoverNPC.isOnScreen())
 							Camera.turnToTile(hoverNPC);
+
+						if (!hoverNPC.isOnScreen())
+							Camera.setCameraAngle(0);
 
 						Clicking.hover(hoverNPC);
 
@@ -125,8 +144,20 @@ public class CombatMgr {
 					} else {
 						return true;
 					}
+					
+					//todo: cleanup
+					// if we aint attacking him, we try to attack him.
+					if (!CombatMgr.isUnderAttack()) {
+						for (int it = 0; it < 20; it++) {
+							if (!attackNPC.isInCombat()  && !CombatMgr.isUnderAttack() && attackNPC.isValid()) {
+								if (Clicking.click("Attack", attackNPC)) {
+									General.sleep(250,320);
+								}
+							} else break;
+						}
+					}
 				}
-				
+
 				AntibanMgr.doDelayForSwitchObject();
 				
 				// Here we killed our current npc, lets check if our hover target is still alive and out of combat
