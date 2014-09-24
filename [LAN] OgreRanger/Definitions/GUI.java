@@ -43,7 +43,6 @@ public class GUI extends JFrame{
 			LANOgreRanger.scriptLocation = Location.valueOf(preferences.get("scriptLocation", Location.CASTLE_WARS.toString()));
 			LANOgreRanger.arrowId = preferences.getInt("arrowId", 0);
 			LANOgreRanger.pickUpArrows = preferences.getBoolean("pickUpArrows", false);
-			LANOgreRanger.pickUpArrowsAlways = preferences.getBoolean("pickUpArrowsAlways", false);
 			LANOgreRanger.pickUpArrowsOnlyAboveAmount = preferences.getBoolean("pickUpArrowsOnlyAboveAmount", false);
 			LANOgreRanger.pickUpArrowCount = preferences.getInt("pickUpArrowCount", 10);
 			LANOgreRanger.useSpec = preferences.getBoolean("useSpec", false);
@@ -63,27 +62,19 @@ public class GUI extends JFrame{
         arrowId.setText(LANOgreRanger.arrowId+"");
 
         pickUpArrows.setText("Pick up arrows");
+        pickUpArrows.setSelected(LANOgreRanger.pickUpArrows);
         pickUpArrows.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent evt) {
             	
             	boolean isSelected = pickUpArrows.isSelected();
-                pickUpArrowsAlways.setEnabled(isSelected);
                 pickUpArrowsAbove.setEnabled(isSelected);
                 pickUpArrowAboveCount.setEnabled(isSelected);
             }
         });
 
-        pickUpArrowsAlways.setText("Always pick arrows up ***");
-        pickUpArrowsAlways.setEnabled(LANOgreRanger.pickUpArrows);
-        pickUpArrowsAlways.setSelected(LANOgreRanger.pickUpArrowsAlways);
-
         pickUpArrowsAbove.setText("Only pick up if more then");
         pickUpArrowsAbove.setEnabled(LANOgreRanger.pickUpArrows);
         pickUpArrowsAbove.setSelected(LANOgreRanger.pickUpArrowsOnlyAboveAmount);
-        
-        ButtonGroup group = new ButtonGroup();
-        group.add(pickUpArrowsAlways);
-        group.add(pickUpArrowsAbove);
 
         pickUpArrowAboveCount.setEnabled(LANOgreRanger.pickUpArrows);
         pickUpArrowAboveCount.setValue(LANOgreRanger.pickUpArrowCount);
@@ -143,7 +134,7 @@ public class GUI extends JFrame{
                     .addGroup(layout.createSequentialGroup()
                         .addGap(21, 21, 21)
                         .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-                            .addComponent(pickUpArrowsAlways)
+                          //  .addComponent(pickUpArrowsAlways)
                             .addGroup(layout.createSequentialGroup()
                                 .addComponent(pickUpArrowsAbove)
                                 .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
@@ -184,7 +175,7 @@ public class GUI extends JFrame{
                 .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(pickUpArrows)
                 .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(pickUpArrowsAlways)
+             //   .addComponent(pickUpArrowsAlways)
                 .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
                     .addComponent(pickUpArrowsAbove)
@@ -227,7 +218,6 @@ public class GUI extends JFrame{
 		LANOgreRanger.scriptLocation = Location.valueOf(location.getSelectedIndex());
 		LANOgreRanger.arrowId = Integer.parseInt(arrowId.getText());
 		LANOgreRanger.pickUpArrows = pickUpArrows.isSelected();
-		LANOgreRanger.pickUpArrowsAlways = pickUpArrows.isSelected();
 		LANOgreRanger.pickUpArrowsOnlyAboveAmount = pickUpArrowsAbove.isSelected();
 		LANOgreRanger.pickUpArrowCount = (int)pickUpArrowAboveCount.getValue();
 		LANOgreRanger.useSpec = useSpec.isSelected();
@@ -243,7 +233,6 @@ public class GUI extends JFrame{
 			preferences.put("scriptLocation", LANOgreRanger.scriptLocation.toString());
 			preferences.putInt("arrowId", LANOgreRanger.arrowId);
 			preferences.putBoolean("pickUpArrows", LANOgreRanger.pickUpArrows);
-			preferences.putBoolean("pickUpArrowsAlways", LANOgreRanger.pickUpArrowsAlways);
 			preferences.putBoolean("pickUpArrowsOnlyAboveAmount", LANOgreRanger.pickUpArrowsOnlyAboveAmount);
 			preferences.putInt("pickUpArrowCount", LANOgreRanger.pickUpArrowCount);
 			preferences.putBoolean("useSpec", LANOgreRanger.useSpec);
@@ -269,8 +258,7 @@ public class GUI extends JFrame{
     private JComboBox<Location> location = new JComboBox<Location>();
     private JSpinner pickUpArrowAboveCount = new JSpinner();
     private JCheckBox pickUpArrows = new JCheckBox();
-    private JRadioButton pickUpArrowsAbove = new JRadioButton();
-    private JRadioButton pickUpArrowsAlways = new JRadioButton();
+    private JCheckBox pickUpArrowsAbove = new JCheckBox();
     private JCheckBox useSpec = new JCheckBox();
 
 }

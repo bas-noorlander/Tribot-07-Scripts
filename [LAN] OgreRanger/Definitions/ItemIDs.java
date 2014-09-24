@@ -3,6 +3,7 @@
  */
 package scripts.Definitions;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -41,5 +42,9 @@ public enum ItemIDs {
 
 	public static ItemIDs valueOf(int itemID) {
 		return map.get(itemID);
+	}
+	
+	public static ItemIDs[] getAll() {
+		return (ItemIDs[]) map.values().toArray();
 	}
 }

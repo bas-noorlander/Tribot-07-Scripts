@@ -52,7 +52,6 @@ public class LANOgreRanger extends Script implements Painting, EventBlockingOver
 	
 	public static boolean pickUpArrows = false;
 	public static int arrowId = 0;
-	public static boolean pickUpArrowsAlways = false;
 	public static int pickUpArrowCount = 10;
 	public static boolean pickUpArrowsOnlyAboveAmount = false;
 	
@@ -82,6 +81,9 @@ public class LANOgreRanger extends Script implements Painting, EventBlockingOver
 		// wait until login bot is done.
 		while (Login.getLoginState() != Login.STATE.INGAME)
 			General.sleep(250);
+		
+		lootIDs.add(ItemIDs.SEED_RANARR.getID());
+		lootIDs.add(ItemIDs.SEED_SNAPDRAGON.getID());
 		
 		PaintMgr.showPaint = true;
 		
@@ -299,36 +301,46 @@ public class LANOgreRanger extends Script implements Painting, EventBlockingOver
 	 */
 	public static void doLooting() {
 
-		if (lootIDs != null && lootIDs.size() > 0) {
+		if (pickUpArrows && !lootIDs.contains(arrowId)) {
+			lootIDs.add(arrowId);
+		} 
+		else if (!pickUpArrows && lootIDs.contains(arrowId))
+			lootIDs.remove(arrowId);
+		
+		if (lootIDs.size() > 0) {
 
 			final int ids[] = buildIntArray(lootIDs);
 			final RSGroundItem[] lootItems = GroundItems.find(ids);
 
 			if (lootItems.length > 0) {
 
-				for (int i = 0; i < 2; i++) {
-					for (final RSGroundItem item : lootItems) {
+				for (final RSGroundItem item : lootItems) {
 
-						if (Inventory.isFull())
-							return;
+					if (Inventory.isFull())
+						return;
 
-						final ItemIDs itemID = ItemIDs.valueOf(item.getID());
-						final int stackSize = item.getStack();
-						final int haveAmount = Inventory.getCount(item.getID());
-						final RSItemDefinition itemDef = item.getDefinition();
+					final int stackSize = item.getStack();
+					final int haveAmount = Inventory.getCount(item.getID());
+					final RSItemDefinition itemDef = item.getDefinition();
 
-						if (itemDef != null) {
+					if (itemDef != null) {
 
-							statusText = "Looting "+stackSize+" "+(itemID != null ? itemID.toString() : itemDef.getName());
+						if (pickUpArrows && item.getID() == arrowId ) {
 
-							if (Clicking.click("Take "+ itemDef.getName(), item)) {
-
-								if (Timing.waitCondition(new Condition() {
-									public boolean active() {
-										return Inventory.getCount(item.getID()) > haveAmount;
-									}}, General.random(1200, 2200))) {
+							if (pickUpArrowsOnlyAboveAmount) {
+								if (stackSize < pickUpArrowCount) {
+									continue;
 								}
 							}
+						}
+
+						statusText = "Looting "+stackSize+" "+itemDef.getName();
+
+						if (Clicking.click("Take "+ itemDef.getName(), item)) {
+							Timing.waitCondition(new Condition() {
+								public boolean active() {
+									return Inventory.getCount(item.getID()) > haveAmount;
+								}}, General.random(4000, 5000));
 						}
 					}
 				}
