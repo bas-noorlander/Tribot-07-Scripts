@@ -70,14 +70,15 @@ public class CombatMgr {
 			eatIfNecessary();
 			
 			final RSNPC attackNPC = npcs[i];
+			
+			// we may NEVER attack an NPC if we are NOT in our safezone!
+			if (!Player.getPosition().equals(LANOgreRanger.POS_SAFESPOT)) {
+				LANOgreRanger.goToOgres();
+			}
 
 			if (attackNPC.isInCombat() && !CombatMgr.isUnderAttack())
 				continue;
 			
-			// we may NEVER attack an NPC if we are NOT in our safezone!
-			if (!Player.getPosition().equals(LANOgreRanger.POS_SAFESPOT)) 
-				return false;
-
 			if (!attackNPC.isOnScreen())
 				Camera.turnToTile(attackNPC);
 
@@ -91,6 +92,11 @@ public class CombatMgr {
 			}
 			
 			eatIfNecessary();
+			
+			// we may NEVER attack an NPC if we are NOT in our safezone!
+			if (!Player.getPosition().equals(LANOgreRanger.POS_SAFESPOT)) {
+				LANOgreRanger.goToOgres();
+			}
 
 			// someone stole our npc =(
 			if (attackNPC.isInCombat() && !CombatMgr.isUnderAttack()) {
@@ -129,7 +135,7 @@ public class CombatMgr {
 				
 				// we may NEVER attack an NPC if we are NOT in our safezone!
 				if (!Player.getPosition().equals(LANOgreRanger.POS_SAFESPOT)) {
-					return true;
+					LANOgreRanger.goToOgres();
 				}
 
 				for (int it = 0; it < 20; it++) {
