@@ -4,7 +4,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.prefs.Preferences;
 
-import javax.swing.ButtonGroup;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.GroupLayout;
 import javax.swing.JButton;
@@ -12,7 +11,6 @@ import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
-import javax.swing.JRadioButton;
 import javax.swing.JSeparator;
 import javax.swing.JSpinner;
 import javax.swing.JTextField;
@@ -45,7 +43,6 @@ public class GUI extends JFrame{
 			LANOgreRanger.pickUpArrows = preferences.getBoolean("pickUpArrows", false);
 			LANOgreRanger.pickUpArrowsOnlyAboveAmount = preferences.getBoolean("pickUpArrowsOnlyAboveAmount", false);
 			LANOgreRanger.pickUpArrowCount = preferences.getInt("pickUpArrowCount", 10);
-			LANOgreRanger.useSpec = preferences.getBoolean("useSpec", false);
 			
 		} catch (Exception e) {
 			General.println("Error while loading settings from last time. This can be caused by some VPS's.");
@@ -88,9 +85,6 @@ public class GUI extends JFrame{
 
         jLabel3.setText("Food name:");
 
-        useSpec.setText("Use magic shortbow special attack");
-        useSpec.setSelected(LANOgreRanger.useSpec);
-
         jLabel4.setText("*** Picking up every arrow (or a low amount)");
 
         jLabel5.setText("will result in your char running into the ogres");
@@ -129,7 +123,7 @@ public class GUI extends JFrame{
                 .addGap(24, 24, 24)
                 .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                     .addGroup(layout.createSequentialGroup()
-                        .addComponent(useSpec)
+                       // .addComponent(useSpec)
                         .addGap(0, 0, Short.MAX_VALUE))
                     .addGroup(layout.createSequentialGroup()
                         .addGap(21, 21, 21)
@@ -189,7 +183,7 @@ public class GUI extends JFrame{
                     .addComponent(jLabel8)
                     .addComponent(foodAmount, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
                 .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(useSpec)
+               // .addComponent(useSpec)
                 .addGap(18, 18, 18)
                 .addComponent(jSeparator1, GroupLayout.PREFERRED_SIZE, 10, GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
@@ -220,7 +214,6 @@ public class GUI extends JFrame{
 		LANOgreRanger.pickUpArrows = pickUpArrows.isSelected();
 		LANOgreRanger.pickUpArrowsOnlyAboveAmount = pickUpArrowsAbove.isSelected();
 		LANOgreRanger.pickUpArrowCount = (int)pickUpArrowAboveCount.getValue();
-		LANOgreRanger.useSpec = useSpec.isSelected();
 		
 		LANOgreRanger.waitForGUI = false;
 		setVisible(false);
@@ -235,7 +228,6 @@ public class GUI extends JFrame{
 			preferences.putBoolean("pickUpArrows", LANOgreRanger.pickUpArrows);
 			preferences.putBoolean("pickUpArrowsOnlyAboveAmount", LANOgreRanger.pickUpArrowsOnlyAboveAmount);
 			preferences.putInt("pickUpArrowCount", LANOgreRanger.pickUpArrowCount);
-			preferences.putBoolean("useSpec", LANOgreRanger.useSpec);
 
 		} catch (Exception e) {
 			General.println("Error while saving these settings for next time. This can be caused by some VPS's.");
@@ -259,6 +251,4 @@ public class GUI extends JFrame{
     private JSpinner pickUpArrowAboveCount = new JSpinner();
     private JCheckBox pickUpArrows = new JCheckBox();
     private JCheckBox pickUpArrowsAbove = new JCheckBox();
-    private JCheckBox useSpec = new JCheckBox();
-
 }
