@@ -359,6 +359,18 @@ public class LANOgreRanger extends Script implements Painting, EventBlockingOver
 				}
 			}
 		}
+		
+		// Equip any arrows we looted
+		RSItem[] arrows = Inventory.find(arrowId);
+		if (arrows.length > 0) {
+	
+			Clicking.click(arrows[0]);
+			
+			Timing.waitCondition(new Condition() {
+				public boolean active() {
+					return Inventory.find(arrowId).length == 0;
+				}}, General.random(1000, 2000));
+		}
 	}
 	
 	/**
