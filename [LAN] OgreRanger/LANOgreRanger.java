@@ -85,8 +85,13 @@ public class LANOgreRanger extends Script implements Painting, EventBlockingOver
 		lootIDs.add(ItemIDs.SEED_RANARR.getID());
 		lootIDs.add(ItemIDs.SEED_SNAPDRAGON.getID());
 		
-		PaintMgr.showPaint = true;
 		
+		/*RSItem[] equippedWeapon = Equipment.find(SLOTS.WEAPON);
+		useSpec = equippedWeapon.length > 0 && equippedWeapon[0].getID() == 861;
+		if (useSpec)
+			General.println("A magic shortbow is detected! We will use the spec occasionally.");
+		*/
+		PaintMgr.showPaint = true;
 		PaintMgr.startRangeXP = Skills.getXP(SKILLS.RANGED);
 
 		if (Combat.isAutoRetaliateOn())
@@ -115,7 +120,7 @@ public class LANOgreRanger extends Script implements Painting, EventBlockingOver
 				
 				POS_SAFESPOT = new RSArea(new RSTile(0, 0, 0), new RSTile(0, 0, 0)).getRandomTile();
 				
-				AREA_BANK = new RSArea(new RSTile(0, 0, 0), new RSTile(0, 0, 0));
+				AREA_BANK = new RSArea(new RSTile(2613, 3334, 0), new RSTile(2620, 3332, 0));
 				
 				break;
 		}
@@ -221,7 +226,7 @@ public class LANOgreRanger extends Script implements Painting, EventBlockingOver
 			
 			// we may NEVER attack an NPC if we are NOT in our safezone!
 			if (!Player.getPosition().equals(LANOgreRanger.POS_SAFESPOT)) {
-				return;
+				goToOgres();
 			}
 			
 			statusText = "Finding Ogre";
@@ -255,7 +260,7 @@ public class LANOgreRanger extends Script implements Painting, EventBlockingOver
 			
 			// we may NEVER attack an NPC if we are NOT in our safezone!
 			if (!Player.getPosition().equals(LANOgreRanger.POS_SAFESPOT)) {
-				return;
+				goToOgres();
 			}
 			
 			statusText = "Killing Ogre";

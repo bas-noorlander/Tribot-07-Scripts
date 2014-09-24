@@ -25,7 +25,7 @@ public class MovementMgr{
 	 */
 	public static boolean walkTo(final Positionable posToWalk) {
 
-		//AntibanMgr.doActivateRun();
+		AntibanMgr.doActivateRun();
 		
 		boolean faraway = !Projection.isInMinimap(Projection.tileToMinimap(posToWalk));
 		
