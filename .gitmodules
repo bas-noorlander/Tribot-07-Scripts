@@ -1,0 +1,3 @@
+[submodule "LanAPI"]
+	path = LanAPI
+	url = https://github.com/Laniax/LanAPI
